@@ -1991,6 +1991,57 @@ function copyReferto() {
   }
 }
 
+// ======================== Referto Panel IHC ========================
+function buildPanelRefertoText(r, idx, active) {
+  const morph = panelState.morph === 'small' ? 'piccole cellule' : 'grandi cellule';
+  const topo  = panelState.topo || 'non specificata';
+  // Immunofenotipo dai marcatori realmente inseriti nel Panel
+  const mk = panelMarkerList();
+  const pos = [], neg = [];
+  for (const m of mk) {
+    const v = panelState.markers[m.key];
+    if (!v || v === '?') continue;
+    if (m.quantitative) { pos.push(`${m.label} ${v}%`); }
+    else if (v === '+') pos.push(m.label + '+');
+    else if (v === '-') neg.push(m.label + '−');
+  }
+  const ip = [pos.join(', '), neg.join(', ')].filter(Boolean).join('; ') || 'non disponibile';
+  const dxName  = r.name.replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+  const compat  = idx === 0 ? 'maggiormente compatibile con' : 'compatibile con';
+  const entity  = r.entityKey ? ENTITIES[r.entityKey] : null;
+  const others  = active.filter((_, i) => i !== idx).map(a => a.name.replace(/\s*\([^)]*\)\s*/g, ' ').trim());
+  const lines = [
+    'REFERTO — Algoritmo diagnostico LNH B (Panel IHC)',
+    '='.repeat(58),
+    `Pattern: ${morph} · sede: ${topo}`,
+    '',
+    `Quadro immunofenotipico ${compat}: ${dxName}, sec. WHO-HAEM5 (5ª ed., 2024).`,
+    '',
+    `Immunofenotipo: ${ip}.`
+  ];
+  if (others.length) lines.push('', `Diagnosi differenziali considerate: ${others.join(', ')}.`);
+  if (entity && entity.l2core && entity.l2core.length)
+    lines.push('', `Conferma (II livello): ${entity.l2core.slice(0, 3).join(' · ')}.`);
+  lines.push('', '-'.repeat(58),
+    'Esito da scorer immunofenotipico (Panel IHC): non valuta architettura né background. Supporto decisionale, non sostituisce il giudizio diagnostico integrato.');
+  return lines.join('\n');
+}
+
+function panelReferto(id) {
+  const { results } = computePanelDiagnosis(panelState.markers, panelState.morph, panelState.topo);
+  const active = results.filter(r => !r.excluded);
+  const idx = active.findIndex(r => r.id === id);
+  if (idx < 0) return;
+  const text = buildPanelRefertoText(active[idx], idx, active);
+  const box = document.getElementById('pnl-referto-box');
+  if (!box) return;
+  box.innerHTML = `
+    <textarea id="app-referto" readonly style="width:100%;height:210px;margin-top:12px;font-family:ui-monospace,Menlo,monospace;font-size:0.76em;line-height:1.5;border:1px solid #c5cae9;border-radius:6px;padding:8px;resize:vertical">${escHtml(text)}</textarea>
+    <button class="app-btn-ctrl" style="margin-top:6px" onclick="copyReferto()">📋 Copia negli appunti</button>
+    <span id="app-referto-fb" style="margin-left:10px;font-size:0.8em;color:#1b5e20"></span>`;
+  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
 // ======================== UI — toggles (Task 8) ========================
 
 function togglePrintMode() {
@@ -2434,6 +2485,8 @@ function renderPanelResult(left, right) {
         <div class="pnl-res-name">${rankPfx[i] || ''}${escHtml(r.name)}</div>
         <div class="pnl-res-tags">${tags}</div>
         ${l2}
+        <button class="app-btn-ctrl" style="margin-top:8px;font-size:0.76em;padding:4px 10px"
+          onclick="panelReferto('${r.id}')">📄 Genera referto per questa</button>
       </div>`;
   });
 
@@ -2471,6 +2524,7 @@ function renderPanelResult(left, right) {
       ${resHtml}
       ${suggestHtml}
       ${wizardNote}
+      <div id="pnl-referto-box"></div>
       <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
         <button class="app-back" onclick="panelState.step='panel';renderPanelMode()">← Modifica panel</button>
         <button class="app-btn-ctrl" onclick="resetPanel()">↺ Nuovo panel</button>
