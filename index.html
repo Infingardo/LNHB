@@ -1,0 +1,2547 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Algoritmo Diagnostico LNH B</title>
+<style>
+  /* ==================== FLOWCHART / PRINT CSS (invariato) ==================== */
+  @media print {
+    body { font-size: 10pt; }
+    .no-print { display: none; }
+    .page-break { page-break-before: always; }
+    #app-wizard { display: none !important; }
+    #app-print-section { display: block !important; }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #fff; color: #111;
+    margin: 0; padding: 0;
+    font-size: 13px;
+  }
+  /* Print section uses original padding */
+  #app-print-section { padding: 24px; }
+  h1 { font-size: 1.3em; text-align: center; margin-bottom: 4px; }
+  .meta { text-align: center; color: #666; font-size: 0.82em; margin-bottom: 28px; }
+  .flow { display: flex; flex-direction: column; align-items: center; gap: 0; max-width: 780px; margin: 0 auto; }
+  .arrow { font-size: 1.4em; color: #888; line-height: 1.6; }
+  .node { width: 100%; border-radius: 8px; padding: 10px 18px; text-align: center; border: 1.5px solid; box-sizing: border-box; }
+  .node strong { display: block; font-size: 0.95em; }
+  .node small { font-size: 0.8em; color: #555; }
+  .node.start    { background:#dbeeff; border-color:#3a7bd5; }
+  .node.step     { background:#e8f5e9; border-color:#388e3c; }
+  .node.panel    { background:#f3e8ff; border-color:#7e3af2; }
+  .node.dx       { background:#e8f5e9; border-color:#388e3c; }
+  .node.lv2      { background:#e8eaf6; border-color:#3949ab; }
+  .level-label   { display:inline-block; font-size:0.68em; font-weight:700; border-radius:10px; padding:1px 8px; margin-bottom:4px; text-transform:uppercase; }
+  .lv1-label { background:#c8e6c9; color:#1b5e20; }
+  .lv2-label { background:#c5cae9; color:#1a237e; }
+  .badge { display:inline-block; background:#fff; border:1px solid #bbb; border-radius:4px; padding:1px 6px; font-size:0.75em; margin:2px 2px; color:#333; }
+  .branch-row { display:flex; gap:10px; width:100%; }
+  .branch-col  { flex:1; display:flex; flex-direction:column; align-items:center; }
+  .node.b-nod  { background:#e0f2f1; border-color:#00897b; font-size:0.88em; }
+  .node.b-dif  { background:#fce4ec; border-color:#c62828; font-size:0.88em; }
+  .node.b-mix  { background:#fff9c4; border-color:#f9a825; font-size:0.88em; }
+  .section-header { border-radius:6px; padding:7px 14px; font-weight:700; font-size:0.9em; margin:28px 0 12px 0; border-left:4px solid; }
+  .nod     { background:#e0f2f1; border-color:#00897b; color:#00695c; }
+  .dif-l   { background:#fce4ec; border-color:#c62828; color:#b71c1c; }
+  .dif-s   { background:#fff3e0; border-color:#e65100; color:#bf360c; }
+  table { width:100%; border-collapse:collapse; margin-bottom:12px; font-size:0.82em; }
+  th { background:#e0e0e0; padding:5px 8px; text-align:left; font-size:0.78em; text-transform:uppercase; border-bottom:2px solid #bbb; }
+  td { padding:5px 8px; border-bottom:1px solid #ddd; vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  .entity { font-weight:700; }
+  .pos { color:#1b5e20; font-weight:600; }
+  .neg { color:#b71c1c; font-weight:600; }
+  .l2c { color:#4a148c; }
+  .l2o { color:#666; font-style:italic; }
+  .warn { background:#fff8e1; border:1px solid #f9a825; border-radius:4px; padding:5px 10px; margin:4px 0 12px 0; font-size:0.8em; color:#5d4037; }
+
+  /* ==================== WIZARD CSS ==================== */
+  #app-print-section { display: none; }
+
+  .app-wizard { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 13px; color: #111; min-height: 100vh; }
+  .app-header { display:flex; justify-content:space-between; align-items:center; padding:10px 20px; background:#e8eaf6; border-bottom:2px solid #c5cae9; }
+  .app-header h1 { font-size:1em; color:#1a237e; margin:0; font-weight:700; }
+  .app-header-controls { display:flex; gap:8px; flex-shrink:0; }
+  .app-btn-ctrl { background:#3949ab; color:#fff; border:none; padding:5px 12px; border-radius:5px; font-size:0.8em; cursor:pointer; font-family:inherit; }
+  .app-btn-ctrl.secondary { background:#fff; color:#555; border:1px solid #bbb; }
+  .app-btn-ctrl.secondary:hover { background:#f5f5f5; }
+  .app-breadcrumb { padding:5px 20px; background:#f5f5f5; border-bottom:1px solid #eee; font-size:0.75em; color:#666; min-height:26px; line-height:26px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .app-tech-flags { padding:8px 20px; background:#f3e5f5; border-bottom:1px solid #e1bee7; font-size:0.8em; display:block; }
+  .app-tech-flags label { margin-right:14px; cursor:pointer; }
+  .app-main { display:grid; grid-template-columns:60% 40%; min-height:calc(100vh - 110px); }
+  .app-left { padding:22px 24px 16px; border-right:1px solid #eee; }
+  .app-right { padding:18px 16px; background:#fafafa; }
+  .app-step-label { font-size:0.72em; font-weight:700; text-transform:uppercase; color:#888; letter-spacing:0.05em; margin-bottom:8px; }
+  .app-question { font-size:1.3em; font-weight:700; color:#111; margin-bottom:6px; line-height:1.3; }
+  .app-question-note { font-size:0.82em; color:#555; margin-bottom:16px; line-height:1.5; }
+  .app-btns { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .app-btn-pos  { background:#1b5e20; color:#fff; border:none; padding:8px 20px; border-radius:6px; font-weight:700; cursor:pointer; font-size:0.88em; font-family:inherit; }
+  .app-btn-neg  { background:#b71c1c; color:#fff; border:none; padding:8px 20px; border-radius:6px; font-weight:700; cursor:pointer; font-size:0.88em; font-family:inherit; }
+  .app-btn-amb  { background:#e65100; color:#fff; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-size:0.88em; font-family:inherit; display:inline-block; }
+  .app-btn-missing { background:#555; color:#fff; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; font-size:0.88em; font-family:inherit; }
+  .app-choice-btn { background:#fff; border:1.5px solid #c5cae9; border-radius:6px; padding:9px 14px; text-align:left; cursor:pointer; font-size:0.88em; color:#1a237e; font-weight:500; width:100%; margin-bottom:7px; font-family:inherit; transition:background 0.15s; }
+  .app-choice-btn:hover { background:#e8eaf6; }
+  .app-trap { background:#fff8e1; border:1px solid #f9a825; border-radius:4px; padding:8px 12px; font-size:0.78em; color:#5d4037; margin-bottom:10px; line-height:1.5; }
+  .app-tech-warn { background:#e3f2fd; border:1px solid #90caf9; border-radius:4px; padding:7px 12px; font-size:0.78em; color:#0d47a1; margin-bottom:8px; line-height:1.5; }
+  .app-nav-btns { margin-top:14px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .app-back  { color:#3949ab; font-size:0.82em; cursor:pointer; background:#fff; border:1.5px solid #3949ab; border-radius:5px; padding:6px 14px; font-family:inherit; font-weight:500; }
+  .app-back:hover { background:#e8eaf6; }
+  .app-rival { color:#7e3af2; font-size:0.8em; cursor:pointer; background:none; border:none; padding:0; font-family:inherit; display:block; }
+
+  /* Differential panel */
+  .app-diff-label { font-size:0.72em; font-weight:700; text-transform:uppercase; color:#888; letter-spacing:0.05em; margin-bottom:10px; }
+  .app-diff-item { display:flex; align-items:center; gap:8px; padding:5px 10px; border-radius:5px; border:1px solid transparent; margin-bottom:5px; font-size:0.85em; }
+  .app-diff-in  { background:#e8f5e9; border-color:#a5d6a7; font-weight:600; }
+  .app-diff-amb { background:#fff3e0; border-color:#ffcc80; font-weight:600; }
+  .app-diff-out { background:#f5f5f5; border-color:#e0e0e0; color:#aaa; text-decoration:line-through; }
+  .app-warn-missing { background:#fff3e0; border:1px solid #ffb300; border-radius:4px; padding:7px 10px; font-size:0.78em; color:#5d4037; margin-bottom:10px; line-height:1.5; }
+
+  /* Result screen */
+  .app-result-name { font-size:1.4em; font-weight:700; color:#1a237e; margin:4px 0 8px 0; line-height:1.3; }
+  .app-result-label { font-size:0.72em; font-weight:700; text-transform:uppercase; color:#888; letter-spacing:0.05em; }
+  .app-badge { display:inline-block; font-size:0.75em; font-weight:700; padding:2px 10px; border-radius:10px; margin-bottom:10px; }
+  .app-badge-classico    { background:#c8e6c9; color:#1b5e20; }
+  .app-badge-compatibile { background:#bbdefb; color:#1565c0; }
+  .app-badge-incompleto  { background:#fff3e0; color:#e65100; }
+  .app-badge-conflitto   { background:#ffcdd2; color:#b71c1c; }
+  .app-result-section { margin-bottom:8px; font-size:0.82em; line-height:1.5; }
+  .app-l2core { margin-bottom:8px; font-size:0.82em; }
+  .app-l2core ul { margin:3px 0 0 0; padding-left:18px; line-height:1.9; color:#4a148c; }
+  .app-l2opt { color:#666; font-size:0.8em; font-style:italic; margin-bottom:8px; line-height:1.5; }
+  .app-trap-result { background:#fff8e1; border:1px solid #f9a825; border-radius:4px; padding:7px 10px; font-size:0.78em; color:#5d4037; margin-bottom:6px; line-height:1.5; }
+  .app-disclaimer { background:#e3f2fd; border:1px solid #90caf9; border-radius:4px; padding:7px 10px; font-size:0.78em; color:#0d47a1; margin-bottom:8px; line-height:1.5; }
+  .app-hgbl-banner { background:#fff3e0; border:2px solid #ff6d00; border-radius:6px; padding:10px 14px; margin-bottom:12px; font-size:0.82em; color:#bf360c; line-height:1.6; }
+  .app-audit { font-size:0.78em; line-height:2; color:#555; }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    .app-main { grid-template-columns: 1fr; }
+    .app-right { border-top: 1px solid #eee; }
+    .app-header h1 small { display: none; }
+  }
+  /* ==================== END WIZARD CSS ==================== */
+
+  /* ==================== PANEL MODE CSS ==================== */
+  .app-mode-bar { display:flex; gap:8px; padding:10px 20px; background:#fff; border-bottom:2px solid #e8eaf6; }
+  .app-mode-tab { padding:8px 20px; cursor:pointer; font-size:0.88em; font-weight:700; border:2px solid #c5cae9; border-radius:7px; background:#fff; color:#5c6bc0; font-family:inherit; transition:all 0.15s; }
+  .app-mode-tab.active { background:#3949ab; color:#fff; border-color:#3949ab; }
+  .app-mode-tab:hover:not(.active) { background:#e8eaf6; border-color:#3949ab; color:#1a237e; }
+
+  .pnl-wrap { padding:20px 24px 16px; }
+  .pnl-title { font-size:1.1em; font-weight:700; color:#1a237e; margin-bottom:6px; }
+  .pnl-sub   { font-size:0.82em; color:#555; margin-bottom:18px; line-height:1.5; }
+
+  .pnl-topo-grid  { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px; }
+  .pnl-topo-btn   { padding:9px 18px; border:1.5px solid #c5cae9; border-radius:7px; cursor:pointer; background:#fff; font-family:inherit; font-size:0.85em; color:#1a237e; font-weight:600; transition:all 0.12s; }
+  .pnl-topo-btn:hover,.pnl-topo-btn.selected { border-color:#3949ab; background:#e8eaf6; }
+
+  .pnl-morph-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+  .pnl-morph-btn  { padding:18px 14px; border:2px solid #c5cae9; border-radius:8px; cursor:pointer; background:#fff; font-family:inherit; text-align:center; transition:all 0.12s; }
+  .pnl-morph-btn:hover,.pnl-morph-btn.selected { border-color:#3949ab; background:#e8eaf6; }
+  .pnl-morph-btn strong { display:block; font-size:0.95em; color:#1a237e; margin-bottom:4px; }
+  .pnl-morph-btn small  { font-size:0.75em; color:#666; }
+
+  .pnl-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(148px, 1fr)); gap:9px; margin-bottom:18px; }
+  .pnl-card { border:1.5px solid #ddd; border-radius:7px; padding:9px 11px; background:#fff; }
+  .pnl-card.done-pos { border-color:#2e7d32; background:#f1f8e9; }
+  .pnl-card.done-neg { border-color:#c62828; background:#fff5f5; }
+  .pnl-card.done-unk { border-color:#888;    background:#f5f5f5; }
+  .pnl-card-name { font-weight:700; font-size:0.84em; margin-bottom:4px; }
+  .pnl-card-note { font-size:0.7em; color:#888; margin-bottom:6px; }
+  .pnl-card-btns { display:flex; gap:4px; }
+  .pnl-cb     { flex:1; padding:4px 2px; border-radius:4px; border:1.5px solid; cursor:pointer; font-size:0.74em; font-weight:700; font-family:inherit; background:#fff; transition:all 0.1s; }
+  .pnl-cb-pos { border-color:#2e7d32; color:#2e7d32; }
+  .pnl-cb-pos.on { background:#2e7d32; color:#fff; }
+  .pnl-cb-neg { border-color:#c62828; color:#c62828; }
+  .pnl-cb-neg.on { background:#c62828; color:#fff; }
+  .pnl-cb-unk { border-color:#888; color:#888; }
+  .pnl-cb-unk.on { background:#888; color:#fff; }
+  .pnl-ki67-row { display:flex; align-items:center; gap:6px; margin-top:5px; }
+  .pnl-ki67-in  { width:60px; border:1.5px solid #bbb; border-radius:4px; padding:4px 6px; font-size:0.8em; font-family:inherit; }
+  .pnl-ki67-in:focus { outline:none; border-color:#3949ab; }
+
+  .pnl-calc { background:#3949ab; color:#fff; border:none; padding:11px 26px; border-radius:7px; font-size:0.88em; font-weight:700; cursor:pointer; font-family:inherit; }
+  .pnl-calc:disabled { background:#bbb; cursor:default; }
+
+  .pnl-res-entity { border-radius:8px; padding:12px 14px; margin-bottom:9px; border:2px solid; }
+  .pnl-res-1 { border-color:#1b5e20; background:#e8f5e9; }
+  .pnl-res-2 { border-color:#1565c0; background:#e3f2fd; }
+  .pnl-res-3 { border-color:#888;    background:#f5f5f5; }
+  .pnl-res-x { border-color:#e0e0e0; background:#fafafa; color:#aaa; }
+  .pnl-res-name { font-weight:700; font-size:0.9em; margin-bottom:6px; }
+  .pnl-res-tags { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:5px; }
+  .pnl-tag     { font-size:0.7em; padding:2px 7px; border-radius:9px; font-weight:600; }
+  .pnl-tag-ok  { background:#c8e6c9; color:#1b5e20; }
+  .pnl-tag-ko  { background:#ffcdd2; color:#b71c1c; }
+  .pnl-tag-mis { background:#fff3e0; color:#e65100; }
+  .pnl-flag-de   { background:#f3e5f5; border:1px solid #ce93d8; border-radius:6px; padding:9px 13px; margin-bottom:10px; font-size:0.8em; color:#4a148c; line-height:1.6; }
+  .pnl-flag-hgbl { background:#fff3e0; border:2px solid #ff6d00; border-radius:6px; padding:9px 13px; margin-bottom:10px; font-size:0.8em; color:#bf360c; line-height:1.6; }
+  .pnl-suggest   { background:#e8eaf6; border-radius:6px; padding:9px 13px; margin-bottom:10px; font-size:0.8em; color:#1a237e; line-height:1.7; }
+  .pnl-right-title   { font-size:0.72em; font-weight:700; text-transform:uppercase; color:#888; letter-spacing:0.05em; margin-bottom:10px; }
+  .pnl-right-summary { font-size:0.82em; line-height:1.9; }
+  /* ==================== END PANEL MODE CSS ==================== */
+</style>
+</head>
+<body>
+
+<!-- ==================== WIZARD SECTION ==================== -->
+<div id="app-wizard" class="app-wizard">
+
+  <div class="app-header">
+    <h1>Algoritmo Diagnostico LNH B <small style="font-weight:400;font-size:0.85em;color:#5c6bc0">WHO-HAEM5 · ICC 2022</small></h1>
+    <div class="app-header-controls">
+      <button class="app-btn-ctrl secondary" onclick="togglePrintMode()">⊞ Flowchart</button>
+      <button class="app-btn-ctrl secondary" onclick="resetAll()">↺ Ricomincia</button>
+    </div>
+  </div>
+
+  <div class="app-tech-flags">
+    <strong style="margin-right:12px">Contesto tecnico:</strong>
+    <label><input type="checkbox" id="flag-decalcified" onchange="applyTechFlagsFromUI()"> Decalcificato</label>
+    <label><input type="checkbox" id="flag-post-treatment" onchange="applyTechFlagsFromUI()"> Post-trattamento</label>
+    <label><input type="checkbox" id="flag-inadequate" onchange="applyTechFlagsFromUI()"> Qualità tecnica dubbia</label>
+  </div>
+
+  <div class="app-mode-bar">
+    <button class="app-mode-tab active" id="pnl-tab-guided" onclick="switchMode('guided')">⊡ Guidato</button>
+    <button class="app-mode-tab"        id="pnl-tab-panel"  onclick="switchMode('panel')">⊞ Panel IHC</button>
+  </div>
+
+  <div id="app-breadcrumb" class="app-breadcrumb"></div>
+
+  <div id="app-main" class="app-main">
+    <div id="app-left" class="app-left"></div>
+    <div id="app-right" class="app-right"></div>
+  </div>
+
+</div>
+
+<!-- ==================== PRINT / STATIC SECTION ==================== -->
+<div id="app-print-section">
+
+<h1>Algoritmo Diagnostico — Linfomi Non-Hodgkin B</h1>
+<p class="meta">WHO-HAEM5 · ICC 2022 | Aggiornato: 2026-05-27</p>
+
+<!-- ==================== LEVEL 1 ==================== -->
+<div class="flow">
+  <div class="node start">
+    <strong>BIOPSIA</strong>
+    <small>Linfonodo · Tessuto extranodale · Midollo osseo</small>
+  </div>
+  <div class="arrow">↓</div>
+
+  <div class="node step">
+    <span class="level-label lv1-label">L1 — Step 0</span>
+    <strong>Asse topografico</strong>
+    <small>LN · Extranodale (MALT, cutaneo, SNC…) · BM / sangue / milza</small>
+  </div>
+  <div class="arrow">↓</div>
+
+  <div class="node step">
+    <span class="level-label lv1-label">L1 — Step 1</span>
+    <strong>Pattern architetturale</strong>
+  </div>
+  <div class="arrow">↓</div>
+
+  <div class="branch-row">
+    <div class="branch-col">
+      <div class="node b-nod"><strong>NODULARE</strong><small>follicolare · mantellare · marginalzonale</small></div>
+    </div>
+    <div class="branch-col">
+      <div class="node b-dif"><strong>DIFFUSO</strong><small>large B · small B · misto</small></div>
+    </div>
+    <div class="branch-col">
+      <div class="node b-mix"><strong>INCERTO / MISTO</strong><small>parzialmente coinvolto · distorto</small></div>
+    </div>
+  </div>
+  <div class="arrow">↓</div>
+
+  <div class="node step">
+    <span class="level-label lv1-label">L1 — Step 2</span>
+    <strong>Citologia + Ki67 orientativo</strong>
+    <small>piccole (&lt;2× linfocita) · grandi (&gt;2× linfocita) · miste · blastoid</small>
+  </div>
+  <div class="arrow">↓</div>
+
+  <div class="node panel">
+    <span class="level-label lv1-label">L1 — Step 3 — Panel IHC di screening</span><br>
+    <span class="badge">CD20</span><span class="badge">PAX5</span><span class="badge">CD79a</span>
+    <span class="badge">CD3</span><span class="badge">CD5</span><span class="badge">CD10</span>
+    <span class="badge">BCL2</span><span class="badge">BCL6</span><span class="badge">MUM1</span>
+    <span class="badge">Ki67</span><span class="badge">Cyclin D1/BCL1</span><span class="badge">SOX11</span>
+    <span class="badge">MYC (IHC)</span><span class="badge">Annessina A1</span>
+  </div>
+  <div class="arrow">↓</div>
+
+  <div class="node dx">
+    <strong>→ Diagnosi di lavoro / differenziale ristretto</strong>
+  </div>
+  <div class="arrow">↓</div>
+
+  <div class="node lv2">
+    <span class="level-label lv2-label">L2 — Conferma entity-specific (vedi sezioni sotto)</span><br>
+    IHC aggiuntiva · FISH core · PCR clonalità IGH/IGK<br>
+    <em style="color:#555">Opzionale/terziario: NGS · GEP (GCB/ABC) · IGHV · TP53 molecolare</em>
+  </div>
+</div>
+
+<!-- ==================== LEVEL 2: NODULARE ==================== -->
+<div class="page-break"></div>
+<div class="section-header nod">▲ PATTERN NODULARE</div>
+<table>
+  <tr>
+    <th style="width:14%">Entità</th>
+    <th style="width:18%">Citologia</th>
+    <th style="width:24%">IHC L1 — discriminanti</th>
+    <th style="width:24%">L2 core</th>
+    <th style="width:20%">L2 opzionale</th>
+  </tr>
+  <tr>
+    <td class="entity">FL (WHO-HAEM5)</td>
+    <td>Piccole-miste (centrociti ± CB) — grading 1–3A non richiesto</td>
+    <td><span class="pos">BCL6+ CD10+ BCL2+</span> Ki67 variabile <small>(BCL2− in ~10–15%, non esclude FL)</small></td>
+    <td class="l2c">FISH BCL2 t(14;18) (prognostico, non obbligatorio per dx)</td>
+    <td class="l2o">Esclusione HGBL se Ki67 elevato</td>
+  </tr>
+  <tr>
+    <td class="entity">Follicular large B-cell lymphoma <small>(ex-FL 3B)</small></td>
+    <td>Grandi — cluster puri di centroblasti, architettura follicolare</td>
+    <td><span class="pos">CD10+ BCL6+</span> <span class="neg">BCL2−</span> Ki67 elevato</td>
+    <td class="l2c">FISH MYC + BCL2 + BCL6 (esclusione HGBL) — trattare come DLBCL</td>
+    <td class="l2o">GEP se disponibile</td>
+  </tr>
+  <tr>
+    <td class="entity">MCL classico</td>
+    <td>Piccole-medie, nuclei irregolari — mantellare, nodulare o diffusa</td>
+    <td><span class="pos">CD5+ Cyclin D1/BCL1+ SOX11+</span> <span class="neg">CD10− CD23−</span></td>
+    <td class="l2c">FISH CCND1/BCL1 t(11;14)(q13;q32) · Ki67 · SOX11 IHC<br>
+      <small>SOX11−: variante leukemic non-nodal (indolente)<br>
+      CycD1−/SOX11+: FISH CCND2 e CCND3 (variante rara)</small></td>
+    <td class="l2o">TP53 · IGHV · NGS se Ki67 &gt;30%</td>
+  </tr>
+  <tr>
+    <td class="entity">NLPBL</td>
+    <td>Grandi LP ("popcorn") rare in background nodulare di piccoli B + TFH con rosette</td>
+    <td><span class="pos">CD20+ BCL6+ OCT2+ BOB1+ EMA±</span> <span class="neg">CD10− CD30− CD15− EBV−</span> rosette PD1+ (o CD57+)</td>
+    <td class="l2c">Rosette: PD1 preferibile; CD57 in alternativa (meno sensibile) · OCT2/BOB1 · CD21/CD23 (meshwork FDC) · IgD · EBER ISH</td>
+    <td class="l2o">IgD · CD45 · variante T/istiociti → simula THRLBCL</td>
+  </tr>
+  <tr>
+    <td class="entity">MZL (nodale/MALT)</td>
+    <td>Piccole-medie, monocitoide, plasmacitoide</td>
+    <td><span class="neg">CD10− CD5−</span> BCL2± CycD1−</td>
+    <td class="l2c">Clonalità IGH/IGK · FISH MALT1/BIRC3/BCL10</td>
+    <td class="l2o">FISH sede-specifica · H. pylori (MALT gastrico)</td>
+  </tr>
+  <tr>
+    <td class="entity">CLL/SLL</td>
+    <td>Piccole (round, cromatina condensata) + proliferation centers</td>
+    <td><span class="pos">CD5+ CD23+ LEF1+</span> <span class="neg">CycD1− SOX11−</span></td>
+    <td class="l2c">FISH del13q / del17p / del11q / +12 · TP53</td>
+    <td class="l2o">IGHV · ZAP70 · NGS (TP53/SF3B1/NOTCH1)</td>
+  </tr>
+</table>
+<div class="warn">⚠ MCL vs MZL: entrambi CD5±, piccole cellule — discriminante: CycD1/BCL1 · SOX11 · FISH CCND1/BCL1. · Follicular large B-cell lymphoma (ex-FL 3B): cluster puri CB + architettura follicolare → trattare come DLBCL, non come FL indolente. · WHO-HAEM5: grading 1–3A non obbligatorio. · NLPBL (ICC 2022 = linfoma B): cellule LP BCL6+ ma CD10−; rosette PD1+ (PD1 preferibile, CD57+ alternativa meno sensibile) di supporto, non defining — l'assenza non esclude NLPBL. Discriminante reale vs THRLBCL: architettura nodulare + meshwork FDC (CD21/CD23) + background di piccoli B. · FL: BCL6 è il marker GC più affidabile — CD10 può essere negativo (specie sedi extranodali/inguinale); BCL2− non esclude FL, in particolare in FL 3B e casi t(14;18)-negativi.</div>
+
+<!-- ==================== LEVEL 2: DIFFUSO GRANDI ==================== -->
+<div class="section-header dif-l">▲ PATTERN DIFFUSO — GRANDI CELLULE</div>
+<table>
+  <tr>
+    <th style="width:14%">Entità</th>
+    <th style="width:18%">Citologia</th>
+    <th style="width:24%">IHC L1 — discriminanti</th>
+    <th style="width:24%">L2 core</th>
+    <th style="width:20%">L2 opzionale</th>
+  </tr>
+  <tr>
+    <td class="entity">DLBCL NOS</td>
+    <td>Grandi (centroblastico / immunoblastico)</td>
+    <td><span class="pos">CD20+ PAX5+</span> CD10/BCL6/MUM1 per COO</td>
+    <td class="l2c">Hans algorithm (cutoff 30%: CD10/BCL6/MUM1) · FISH MYC+BCL2+BCL6 · EBER ISH · p53 IHC</td>
+    <td class="l2o">GEP GCB/ABC · NGS · CD30</td>
+  </tr>
+  <tr>
+    <td class="entity">HGBL-DH/TH <small>(MYC+BCL2 e/o BCL6)</small></td>
+    <td>Grandi o blastoid</td>
+    <td><span class="pos">MYC IHC ≥40% BCL2 IHC ≥50%</span> Ki67 elevato</td>
+    <td class="l2c"><strong>FISH MYC + BCL2 + BCL6 — OBBLIGATORIO</strong></td>
+    <td class="l2o">GEP (spesso GCB) · NGS</td>
+  </tr>
+  <tr>
+    <td class="entity">Burkitt</td>
+    <td>Medie, monomorfe, "starry sky"</td>
+    <td><span class="pos">CD10+ BCL6+ MYC IHC ~100% Ki67 ~100%</span> <span class="neg">BCL2−</span></td>
+    <td class="l2c">FISH MYC t(8;14) o varianti · EBER ISH (endemic)</td>
+    <td class="l2o">Esclusione HGBL-DH (BCL2-FISH) · NGS ID3/TCF3</td>
+  </tr>
+  <tr>
+    <td class="entity">PMBL</td>
+    <td>Grandi, sclerosi a bande ± lacunari — mediastino</td>
+    <td><span class="pos">CD30+ CD23+ MAL+</span> PDL1/PDL2±</td>
+    <td class="l2c">Nessun FISH richiesto per dx · citogenetica se atipico</td>
+    <td class="l2o">GEP (PMBL signature) · NGS JAK2/SOCS1</td>
+  </tr>
+  <tr>
+    <td class="entity">THRLBCL</td>
+    <td>Rare cellule grandi (&lt;10%) in background di T-linfociti + istiociti</td>
+    <td><span class="pos">CD20+ OCT2+ BOB1+</span> <span class="neg">CD30− CD15− EBV−</span> background: CD3+ CD68+</td>
+    <td class="l2c">PD1 IHC (rosette assenti, ≠ NLPBL) · EBER ISH · clonalità IGH · OCT2/BOB1</td>
+    <td class="l2o">Esclusione cHL (CD30/CD15) · EMA · esclusione NLPBL</td>
+  </tr>
+  <tr>
+    <td class="entity">MCL blastoide</td>
+    <td>Grandi blastiche, cromatina dispersa, mitosi elevate — simula linfoblastico</td>
+    <td><span class="pos">CD5+ Cyclin D1/BCL1+ SOX11+</span> Ki67 elevato <span class="neg">TdT−</span></td>
+    <td class="l2c">FISH CCND1/BCL1 · TP53 · Ki67</td>
+    <td class="l2o">NGS · IGHV · esclusione B-ALL (TdT)</td>
+  </tr>
+  <tr>
+    <td class="entity">MCL pleomorfo</td>
+    <td>Grandi pleomorfe, nuclei irregolari prominenti — simula DLBCL</td>
+    <td><span class="pos">CD5+ Cyclin D1/BCL1+</span> SOX11± Ki67 molto elevato</td>
+    <td class="l2c">FISH CCND1/BCL1 · TP53 · Ki67</td>
+    <td class="l2o">NGS · esclusione DLBCL se CycD1 debole/focale (controllo tecnico)</td>
+  </tr>
+  <tr>
+    <td class="entity">HGBL NOS <small>(per esclusione)</small></td>
+    <td>Blastoid/intermedia tra DLBCL e Burkitt · Ki67 &gt;80%</td>
+    <td><span class="pos">CD20+ TdT−</span> <span class="neg">CycD1−</span> MYC IHC variabile · Ki67 &gt;80%</td>
+    <td class="l2c"><strong>Percorso di esclusione (in ordine):</strong><br>
+      1. FISH MYC+BCL2+BCL6 → se pos: HGBL-DH/TH<br>
+      2. FISH MYC + morfologia → se t(8;14)+ID3/TCF3: Burkitt<br>
+      3. TdT+CD34 → esclude B-ALL<br>
+      4. CycD1/SOX11 → esclude MCL blastoide<br>
+      → Residuo: HGBL NOS</td>
+    <td class="l2o">NGS ID3/TCF3/CCND3 · GEP · MYC singolo senza BCL2/BCL6 → DLBCL (WHO-HAEM5)</td>
+  </tr>
+</table>
+<div class="warn">⚠ Double expressor (MYC IHC ≥40% + BCL2 IHC ≥50%) ≠ DH/TH: richiedere FISH sempre. · MYC singolo riarrangiato (no BCL2/BCL6) → DLBCL per WHO-HAEM5. · PMBL: diagnosi clinico-radiologica + IHC; FISH non definitiva. · HGBL NOS: diagnosi per esclusione — seguire il percorso a 4 step.</div>
+
+<!-- ==================== LEVEL 2: DIFFUSO PICCOLE ==================== -->
+<div class="section-header dif-s">▲ PATTERN DIFFUSO — PICCOLE / INTERMEDIE CELLULE</div>
+<table>
+  <tr>
+    <th style="width:14%">Entità</th>
+    <th style="width:18%">Citologia</th>
+    <th style="width:24%">IHC L1 — discriminanti</th>
+    <th style="width:24%">L2 core</th>
+    <th style="width:20%">L2 opzionale</th>
+  </tr>
+  <tr>
+    <td class="entity">CLL/SLL (diffusa)</td>
+    <td>Piccole + proliferation centers</td>
+    <td><span class="pos">CD5+ CD23+ LEF1+</span> <span class="neg">CycD1− SOX11−</span></td>
+    <td class="l2c">FISH del13q / del17p / del11q / +12 · TP53</td>
+    <td class="l2o">IGHV · NGS (TP53/SF3B1/NOTCH1)</td>
+  </tr>
+  <tr>
+    <td class="entity">MCL classico (variante diffusa)</td>
+    <td>Piccole-medie, nuclei irregolari</td>
+    <td><span class="pos">CD5+ Cyclin D1/BCL1+ SOX11+</span></td>
+    <td class="l2c">→ stessi step L2 del blocco NODULARE · blastoide/pleomorfo → sezione diffuso-grandi</td>
+    <td class="l2o">SOX11−: variante leukemic non-nodal · CycD1−/SOX11+: FISH CCND2 e CCND3</td>
+  </tr>
+  <tr>
+    <td class="entity">MZL (diffuso)</td>
+    <td>Piccole-medie, monocitoide/plasmacitoide</td>
+    <td><span class="neg">CD5− CD10−</span> BCL2± CycD1−</td>
+    <td class="l2c">Clonalità IGH/IGK · FISH sede-specifica</td>
+    <td class="l2o">Annessina A1 neg (esclude HCL)</td>
+  </tr>
+  <tr>
+    <td class="entity">HCL (tricoileucemia)</td>
+    <td>Medie, citoplasma "hairy" — BM "fried egg" · sangue/milza · LN raro</td>
+    <td><span class="pos">CD20++ CD103+ CD25+ CD123+ Annessina A1+</span> <span class="neg">CD5− CD10−</span> CycD1±⚠</td>
+    <td class="l2c">BRAF V600E (PCR/NGS) · DBA.44 · TRAP · CD11c</td>
+    <td class="l2o">IGHV4-34 (variante HCL se BRAF-neg) · MAP2K1 · esclusione SDRPSBCL</td>
+  </tr>
+  <tr>
+    <td class="entity">LPL / WM</td>
+    <td>Piccole + plasmacitoidi + plasmacellule ± mastociti (BM) · IgM paraprotein</td>
+    <td><span class="neg">CD5− CD10− CycD1−</span> <span class="pos">MUM1+ CD138+</span> IgM citoplasmatica</td>
+    <td class="l2c">MYD88 L265P (PCR/NGS) · clonalità IGH/IGK · sierologia IgM</td>
+    <td class="l2o">CXCR4 (prognostico) · esclusione MZL plasmacitoide (MALT1-FISH neg)</td>
+  </tr>
+</table>
+<div class="warn">⚠ MCL CD5− (10–15%): non escludere se CycD1/BCL1+/SOX11+. · HCL CycD1± debole: Annessina A1+ · CD103+ · BRAF V600E discriminano da MCL. · HCL variante (BRAF-neg, CD25-basso, CD123−) = biologia diversa da HCL classico.</div>
+
+<!-- ==================== TRAPPOLE ==================== -->
+<div class="section-header" style="background:#fff8e1;border-color:#f9a825;color:#5d4037;">⚠ Trappole diagnostiche trasversali</div>
+<table>
+  <tr><th style="width:40%">Trappola</th><th>Soluzione</th></tr>
+  <tr><td>Double expressor (MYC IHC ≥40% + BCL2 IHC ≥50%) ≠ DH/TH</td><td>Richiedere FISH MYC+BCL2+BCL6 sempre — cutoff MYC: ≥40% (alcuni ≥50%); BCL2: ≥50%</td></tr>
+  <tr><td>MYC singolo riarrangiato (no BCL2/BCL6)</td><td>→ DLBCL per WHO-HAEM5, non HGBL-DH/TH</td></tr>
+  <tr><td>MCL CD5− (10–15%)</td><td>Non escludere MCL se Cyclin D1/BCL1+ e SOX11+</td></tr>
+  <tr><td>HCL con CycD1± debole</td><td>Annessina A1+ · CD103+ · BRAF V600E discriminano da MCL</td></tr>
+  <tr><td>FL grading 1–3A</td><td>Abolito come categoria clinica obbligatoria in WHO-HAEM5</td></tr>
+  <tr><td>Follicular large B-cell lymphoma (ex-FL 3B)</td><td>Architettura follicolare + cluster puri CB → trattare come DLBCL, non come FL indolente</td></tr>
+  <tr><td>THRLBCL vs NLPBL</td><td>Rosette (PD1 preferibile; CD57 alternativa, meno sensibile) di supporto, non defining. Discriminante reale: NLPBL nodulare con meshwork FDC (CD21/CD23) + piccoli B; THRLBCL diffuso, background istiociti (CD68/CD163). Rosette assenti NON escludono NLPBL</td></tr>
+  <tr><td>NLPBL: cellule LP CD10+?</td><td>No — le cellule LP sono BCL6+ ma <strong>CD10−</strong>. CD10+ in proliferazione B nodulare → pensare FL, non NLPBL</td></tr>
+  <tr><td>PMBL: FISH non definitiva</td><td>Diagnosi clinico-radiologica + IHC; GEP se disponibile</td></tr>
+  <tr><td>HGBL NOS: diagnosi per esclusione</td><td>Seguire il percorso a 4 step: DH/TH → Burkitt → B-ALL → MCL blastoide → residuo HGBL NOS</td></tr>
+  <tr><td>MCL CCND1-negativo</td><td>SOX11+ è il segnale → FISH CCND2 e CCND3</td></tr>
+  <tr><td>Hans algorithm: cutoff</td><td>30% per CD10, BCL6 e MUM1. GCB se CD10≥30%; o CD10&lt;30%+BCL6≥30%+MUM1&lt;30%</td></tr>
+  <tr><td>CCND1 = BCL1 = Cyclin D1</td><td>Gene: CCND1 (=BCL1). Proteina IHC: Cyclin D1. Traslocazione: t(11;14)(q13;q32)</td></tr>
+</table>
+
+<!-- ==================== SIGNATURE TABLE ==================== -->
+<div class="section-header" style="background:#e8eaf6;border-color:#3949ab;color:#1a237e;">⊞ Firma immunofenotipica — quick reference</div>
+
+<div class="section-header nod" style="font-size:0.85em">Piccole / intermedie cellule</div>
+<table>
+  <tr><th style="width:18%">Entità</th><th style="width:42%">Fenotipo IHC chiave</th><th style="width:18%">Evento genetico</th><th>Nota</th></tr>
+  <tr><td class="entity">CLL / SLL</td><td><span class="pos">CD5+ CD23+ CD200+ LEF1+</span> <span class="neg">CD10− BCL1−</span> sIg debole</td><td>del13q · +12 · del11q · del17p</td><td>LEF1 / CD200 discriminano da MCL</td></tr>
+  <tr><td class="entity">MCL</td><td><span class="pos">CD5+ BCL1+ SOX11+</span> <span class="neg">CD23− CD10−</span></td><td>t(11;14) CCND1</td><td>Variante CD5−: SOX11+ è il segnale</td></tr>
+  <tr><td class="entity">FL</td><td><span class="pos">BCL6+ CD10+ BCL2+</span> <span class="neg">CD5−</span></td><td>t(14;18) BCL2</td><td>BCL2− non esclude · CD10 può mancare (extranodale)</td></tr>
+  <tr><td class="entity">MZL</td><td><span class="neg">CD5− CD10− CD23− BCL1− SOX11−</span> CD20+</td><td>— (variabile per sede)</td><td>Diagnosi di esclusione</td></tr>
+  <tr><td class="entity">LPL / WM</td><td><span class="neg">CD5− CD10− CD23−</span> plasmacitoide</td><td>MYD88 L265P</td><td>Componente plasmacellulare · IgM</td></tr>
+  <tr><td class="entity">HCL</td><td><span class="pos">Annessina A1+ CD103+ CD25+ CD11c+ CD123+</span> <span class="neg">CD5− CD10−</span></td><td>BRAF V600E</td><td>CycD1 debole ≠ MCL · milza/sangue/BM</td></tr>
+</table>
+
+<div class="section-header dif-l" style="font-size:0.85em">Grandi cellule</div>
+<table>
+  <tr><th style="width:20%">Entità</th><th style="width:40%">Fenotipo IHC chiave</th><th style="width:18%">Evento genetico</th><th>Nota</th></tr>
+  <tr><td class="entity">DLBCL NOS — GCB</td><td><span class="pos">CD10+</span> oppure <span class="pos">BCL6+</span> <span class="neg">MUM1−</span> (Hans)</td><td>—</td><td>Cutoff Hans 30%</td></tr>
+  <tr><td class="entity">DLBCL NOS — non-GCB</td><td><span class="neg">CD10−</span> <span class="pos">MUM1+</span> (o CD10− BCL6−)</td><td>—</td><td>Cutoff Hans 30%</td></tr>
+  <tr><td class="entity">HGBL-DH/TH</td><td>CD10+ BCL6+ — fenotipo non sufficiente</td><td><strong>MYC + BCL2 e/o BCL6 (FISH) = defining</strong></td><td>FISH obbligatoria</td></tr>
+  <tr><td class="entity">Burkitt</td><td><span class="pos">CD10+ BCL6+ MYC+</span> <span class="neg">BCL2−</span> Ki67 ~100%</td><td>t(8;14) MYC (single-hit)</td><td>BCL2 negativo è atteso</td></tr>
+  <tr><td class="entity">PMBL</td><td><span class="pos">CD30+ (debole/eterog) CD23+ MAL+</span> CD20+</td><td>9p24 (PDL1/PDL2)</td><td>Mediastino · clinico-radiologica · FISH non definitiva</td></tr>
+  <tr><td class="entity">NLPBL</td><td><span class="pos">CD20+ BCL6+ OCT2+ BOB1+</span> EMA± <span class="neg">CD10− CD30− CD15−</span></td><td>—</td><td>Nodulare · rosette PD1+ (o CD57+) di supporto · LP cells CD10−</td></tr>
+  <tr><td class="entity">THRLBCL</td><td><span class="pos">CD20+ BCL6+</span> in background di cellule T / istiociti</td><td>—</td><td>Diffuso, no rosette (vs NLPBL)</td></tr>
+  <tr><td class="entity">Follicular large B-cell <small>(ex-3B)</small></td><td><span class="pos">CD10+ BCL6+</span> BCL2 spesso <span class="neg">−</span></td><td>spesso BCL2-non riarrangiato</td><td>Architettura follicolare → trattare come DLBCL</td></tr>
+  <tr><td class="entity">MCL blastoide / pleomorfo</td><td><span class="pos">CD5+ BCL1+ SOX11+</span> Ki67 elevato</td><td>t(11;14) ± TP53</td><td>Variante morfologica, non biologica</td></tr>
+</table>
+
+<div style="text-align:center;margin-top:20px">
+  <button onclick="togglePrintMode()" style="background:#3949ab;color:#fff;border:none;padding:6px 16px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:0.85em">← Torna all'app interattiva</button>
+</div>
+
+</div><!-- end app-print-section -->
+
+<script>
+// ======================== KNOWLEDGE BASE — ENTITIES (Task 2) ========================
+const ENTITIES = {
+  FL: {
+    name: "FL (WHO-HAEM5)",
+    pattern: ["nodulare"],
+    morphology: "Piccole-miste, centrociti ± centroblasti",
+    ihc_pos: ["CD10", "BCL6", "BCL2"],
+    ihc_neg: [],
+    classico_markers: ["CD10", "BCL6", "BCL2"],
+    l2core: [
+      "FISH BCL2 t(14;18)(q32;q21) — casi BCL2-IHC− o morfologia dubbia",
+      "PCR IGH-BCL2 (MBR / mcr) — alternativa a FISH; più sensibile per MCR; nei casi IHC-/FISH- con morfologia convincente"
+    ],
+    l2opt: [
+      "Clonalità IGH/IGK (PCR) — conferma B-clonale in casi dubbi",
+      "Esclusione HGBL se Ki67 elevato o morfologia dubbia (FISH MYC+BCL2+BCL6)"
+    ],
+    traps: [
+      "FL grading 1–3A: non obbligatorio come categoria clinica in WHO-HAEM5",
+      "Ki67 elevato → escludere HGBL-DH/TH (FISH MYC+BCL2+BCL6)",
+      "BCL2−: non esclude FL (10–15% FISH t(14;18)+); richiedere FISH o PCR IGH-BCL2 prima di escludere FL",
+      "FL inguinale: CD23 può essere espresso (30–40%) — non interpretare come CLL/SLL senza valutare CD10 e BCL6"
+    ],
+    notes: null,
+    hgbl_banner: false
+  },
+  FLBCL: {
+    name: "Follicular large B-cell lymphoma (ex-FL 3B)",
+    pattern: ["nodulare"],
+    morphology: "Grandi — cluster puri di centroblasti, architettura follicolare",
+    ihc_pos: ["CD10", "BCL6"],
+    ihc_neg: [],
+    classico_markers: ["CD10", "BCL6"],
+    l2core: ["FISH MYC + BCL2 + BCL6 (esclusione HGBL-DH/TH)"],
+    l2opt: ["GEP se disponibile"],
+    traps: [
+      "Architettura follicolare + cluster puri CB → trattare come DLBCL, non come FL indolente",
+      "BCL2 spesso negativo e t(14;18) spesso assente — ma BCL2+ NON esclude FLBCL (non è un negativo defining)"
+    ],
+    notes: "Trattamento: come DLBCL — non sottotrattare.",
+    hgbl_banner: false
+  },
+  MCL: {
+    name: "MCL classico",
+    pattern: ["nodulare", "diffuso-piccole"],
+    morphology: "Piccole-medie, nuclei irregolari — architettura mantellare, nodulare o diffusa",
+    ihc_pos: ["CD5", "CycD1/BCL1", "SOX11"],
+    ihc_neg: ["CD10", "CD23"],
+    classico_markers: ["CD5", "CycD1/BCL1", "SOX11"],
+    l2core: [
+      "FISH CCND1/BCL1 t(11;14)(q13;q32) — conferma citogenetica (quasi-obbligatorio)",
+      "Ki67 (prognostico — >30%: NGS; blastoide se morfologia blastica)"
+    ],
+    l2opt: ["TP53 IHC/NGS", "IGHV mutation status", "NGS se Ki67 >30% o sospetto blastoide"],
+    traps: [
+      "MCL CD5− (10–15% dei casi) — non escludere MCL se CycD1/BCL1+ e SOX11+",
+      "SOX11−: variante leukemic non-nodal (indolente) — rivalutare clinicamente",
+      "CycD1−/SOX11+: FISH prima CCND1, poi CCND2 e CCND3 se neg (variante rara)",
+      "HCL può dare CycD1± debole — discriminante: Annessina A1 + BRAF V600E"
+    ],
+    notes: null,
+    hgbl_banner: false
+  },
+  NLPBL: {
+    name: "NLPBL",
+    pattern: ["nodulare"],
+    morphology: "Grandi cellule LP (\"popcorn\") rare disperse in background nodulare di piccoli B + TFH con rosette (PD1+ o CD57+)",
+    ihc_pos: ["CD20", "BCL6", "OCT2", "BOB1"],
+    ihc_neg: ["CD10", "CD30", "CD15"],
+    classico_markers: ["CD20", "BCL6", "OCT2", "BOB1"],
+    l2core: ["Rosette: PD1 preferibile, CD57 alternativa (meno sensibile)", "Meshwork FDC: CD21/CD23 · IgD", "OCT2 e BOB1", "EBER ISH", "Clonalità IGH"],
+    l2opt: ["CD45", "Esclusione variante T/istiociti ricca"],
+    traps: [
+      "Cellule LP: BCL6+ ma CD10− — CD10+ in proliferazione B nodulare → pensare FL, non NLPBL",
+      "Rosette di supporto, non defining: PD1 più sensibile di CD57; la loro assenza NON esclude NLPBL",
+      "Discriminante reale vs THRLBCL: architettura nodulare + meshwork FDC (CD21/CD23) + background piccoli B (vs istiociti CD68/CD163)",
+      "ICC 2022 classifica come linfoma B; WHO-HAEM5 la mantiene tra i linfomi di Hodgkin con fenotipo B"
+    ],
+    notes: "ICC 2022: NLPBL = linfoma B. WHO-HAEM5: classificata tra i linfomi di Hodgkin. Nota classificativa rilevante per il referto.",
+    hgbl_banner: false
+  },
+  MZL: {
+    name: "MZL (nodale / MALT)",
+    pattern: ["nodulare", "diffuso-piccole"],
+    morphology: "Piccole-medie, monocitoidi, plasmocitoidi",
+    ihc_pos: ["CD20"],
+    ihc_neg: ["CD10", "CD5", "CycD1/BCL1"],
+    classico_markers: ["CD20"],
+    l2core: ["Clonalità IGH/IGK", "FISH MALT1/BIRC3/BCL10"],
+    l2opt: ["FISH sede-specifica", "H. pylori (MALT gastrico)", "CD43 (co-espressione supporta linfoma vs iperplasia reattiva)"],
+    traps: [
+      "Diagnosi per esclusione: nessun marcatore positivo defining. Robustezza intrinsecamente limitata — si fonda su CD5−/CD10−/CycD1− + clonalità",
+      "CD5+ o CD10+ refertato: argomenta CONTRO MZL (riconsiderare MCL/CLL o FL)",
+      "Annessina A1− discrimina da HCL"
+    ],
+    notes: "Diagnosi di esclusione: l'assenza di un positivo defining rende la robustezza meno informativa. Pesare clonalità (IGH/IGK) e contesto.",
+    hgbl_banner: false
+  },
+  CLL: {
+    name: "CLL/SLL",
+    pattern: ["nodulare", "diffuso-piccole"],
+    morphology: "Piccole, rotonde, cromatina addensata, con centri di proliferazione",
+    ihc_pos: ["CD5", "CD23", "LEF1"],
+    ihc_neg: ["CycD1/BCL1", "SOX11"],
+    classico_markers: ["CD5", "CD23", "LEF1"],
+    l2core: ["FISH del13q / del17p / del11q / +12", "TP53"],
+    l2opt: ["IGHV mutation status", "ZAP70", "NGS (TP53/SF3B1/NOTCH1)"],
+    traps: [
+      "CD23 debole o focale: non esclude CLL — verificare LEF1",
+      "Proliferation centers: caratteristici ma non sempre evidenti su biopsia"
+    ],
+    notes: null,
+    hgbl_banner: false
+  },
+  DLBCL: {
+    name: "DLBCL NOS",
+    pattern: ["diffuso-grandi"],
+    morphology: "Grandi, centroblastiche o immunoblastiche",
+    ihc_pos: ["CD20", "PAX5"],
+    ihc_neg: [],
+    classico_markers: ["CD20", "PAX5", "CD10", "BCL6", "MUM1"],
+    l2core: [
+      "Hans algorithm (cutoff 30%): CD10/BCL6/MUM1 → COO GCB/non-GCB",
+      "FISH MYC + BCL2 + BCL6 (esclusione DH/TH)",
+      "EBER ISH",
+      "p53 IHC"
+    ],
+    l2opt: ["GEP GCB/ABC", "NGS mutazioni driver", "CD30"],
+    traps: [
+      "Double expressor (MYC IHC ≥40% + BCL2 IHC ≥50%) ≠ DH/TH — FISH obbligatorio",
+      "MYC singolo riarrangiato (senza BCL2/BCL6) → classificare come DLBCL per WHO-HAEM5, non HGBL-DH/TH"
+    ],
+    notes: "COO non classificabile (dati Hans incompleti). Eseguire panel completo CD10/BCL6/MUM1 per classificazione GCB/non-GCB.",
+    hgbl_banner: false
+  },
+  DLBCL_GCB: {
+    name: "DLBCL NOS — sottotipo GCB (Hans)",
+    pattern: ["diffuso-grandi"],
+    morphology: "Grandi, centroblastiche predominanti",
+    ihc_pos: ["CD20", "PAX5", "BCL6"],
+    ihc_neg: ["MUM1 (<30%)"],
+    classico_markers: ["CD20", "PAX5", "CD10", "BCL6", "MUM1", "MYC IHC", "BCL2 IHC"],
+    l2core: [
+      "MYC IHC (cutoff ≥40%) + BCL2 IHC (cutoff ≥50%) — Double expressor assessment",
+      "FISH MYC + BCL2 + BCL6 (esclusione DH/TH — obbligatorio se double expressor)",
+      "EBER ISH",
+      "p53 IHC"
+    ],
+    l2opt: [
+      "GEP (Lymph2Cx / NanoString) — gold standard per COO definitivo",
+      "NGS mutazioni driver (EZH2, BCL2, KMT2D — tipiche GCB)"
+    ],
+    traps: [
+      "Double expressor GCB (MYC ≥40% + BCL2 ≥50%) ≠ DH/TH — FISH obbligatorio",
+      "Hans GCB ≠ GEP-GCB: concordanza ~80% — casi borderline richiedono GEP per trial"
+    ],
+    notes: "Hans GCB: CD10 ≥30% OPPURE (CD10<30% + BCL6≥30% + MUM1<30%). GEP desiderabile come gold standard, in particolare per arruolamento in trial o casi borderline.",
+    hgbl_banner: false
+  },
+  DLBCL_nonGCB: {
+    name: "DLBCL NOS — sottotipo non-GCB / ABC (Hans)",
+    pattern: ["diffuso-grandi"],
+    morphology: "Grandi, immunoblastiche o miste centroblastico/immunoblastiche",
+    ihc_pos: ["CD20", "PAX5", "MUM1 (≥30%)"],
+    ihc_neg: ["CD10 (<30%)"],
+    classico_markers: ["CD20", "PAX5", "BCL6", "MUM1", "MYC IHC", "BCL2 IHC"],
+    l2core: [
+      "MYC IHC (cutoff ≥40%) + BCL2 IHC (cutoff ≥50%) — Double expressor assessment",
+      "FISH MYC + BCL2 + BCL6 (esclusione DH/TH — obbligatorio se double expressor)",
+      "EBER ISH",
+      "p53 IHC",
+      "MYD88 L265P (frequente in ABC/non-GCB; rilevante per terapie target)"
+    ],
+    l2opt: [
+      "GEP (Lymph2Cx / NanoString) — gold standard per COO definitivo",
+      "NGS mutazioni driver (MYD88 L265P, CD79B — tipiche ABC)",
+      "CD30 (potenziale target)"
+    ],
+    traps: [
+      "Double expressor (MYC IHC ≥40% + BCL2 IHC ≥50%) ≠ DH/TH — FISH obbligatorio",
+      "Hans non-GCB ≠ ABC molecolare: concordanza ~80% — GEP necessario per trial su non-GCB/ABC"
+    ],
+    notes: "Hans non-GCB/ABC: prognosi più sfavorevole con R-CHOP rispetto a GCB. GEP desiderabile — essenziale per trial (polatuzumab, ibrutinib-R-CHOP, venetoclax). MYD88 L265P orienta verso DLBCL ABC de novo o primario SNC/testicolo.",
+    hgbl_banner: false
+  },
+  HGBL_DH: {
+    name: "HGBL con riarrangiamento MYC e BCL2 e/o BCL6 (DH/TH)",
+    pattern: ["diffuso-grandi"],
+    morphology: "Grandi, talora blastoidi",
+    ihc_pos: ["MYC IHC (>40%)", "BCL2 IHC (>50%)"],
+    ihc_neg: [],
+    classico_markers: ["MYC IHC", "BCL2 IHC"],
+    l2core: ["FISH MYC + BCL2 + BCL6 — OBBLIGATORIO"],
+    l2opt: ["GEP (spesso GCB)", "NGS"],
+    traps: [
+      "Double expressor ≠ DH/TH — solo FISH conferma il riarrangiamento",
+      "MYC IHC cutoff ≥40% (alcuni usano ≥50%): non standardizzato"
+    ],
+    notes: null,
+    hgbl_banner: false
+  },
+  BURKITT: {
+    name: "Burkitt",
+    pattern: ["diffuso-grandi"],
+    morphology: "Medie, monomorfe, \"starry sky\"",
+    ihc_pos: ["CD10", "BCL6", "MYC IHC (~100%)", "Ki67 (~100%)"],
+    ihc_neg: ["BCL2"],
+    classico_markers: ["CD10", "BCL6", "Ki67"],
+    l2core: ["FISH MYC t(8;14) o varianti", "EBER ISH (forma endemica)"],
+    l2opt: ["Esclusione HGBL-DH (BCL2-FISH)", "NGS ID3/TCF3"],
+    traps: [
+      "Ki67 <95%: riconsiderare diagnosi — Burkitt ha Ki67 quasi 100%",
+      "BCL2+ insolito — escludere HGBL-DH"
+    ],
+    notes: null,
+    hgbl_banner: false
+  },
+  PMBL: {
+    name: "PMBL",
+    pattern: ["diffuso-grandi"],
+    morphology: "Grandi, sclerosi a bande, ± lacunari — localizzazione mediastinica",
+    ihc_pos: ["CD20", "CD23", "CD30", "MAL"],
+    ihc_neg: ["CD15"],
+    classico_markers: ["CD20", "CD23"],
+    l2core: ["CD20+ forte (B-cell)", "CD23+ · MAL+ · CD30+ (debole/eterogeneo)", "EBER ISH (negativo — vs cHL)", "Citogenetica se atipico"],
+    l2opt: ["GEP (PMBL signature)", "NGS JAK2/SOCS1", "PD-L1/PD-L2 (9p24)"],
+    traps: [
+      "CD30 è DEBOLE/eterogeneo in PMBL: CD30 forte e uniforme + CD15+ → orienta a cHL, non PMBL",
+      "Diagnosi clinico-radiologica + IHC — sede mediastinica (giovane, F) è elemento chiave; FISH non definitiva",
+      "CD23 e/o MAL possono mancare: non escludono PMBL se sede + CD20+ forte + morfologia concordanti",
+      "CD15−/EBV− (EBER): discriminano da cHL. PMBL senza massa mediastinica: diagnosi molto incerta"
+    ],
+    notes: null,
+    hgbl_banner: false
+  },
+  THRLBCL: {
+    name: "THRLBCL",
+    pattern: ["diffuso-grandi"],
+    morphology: "Rare cellule neoplastiche (<10%) disperse in ricco background di T-linfociti + istiociti — architettura diffusa",
+    ihc_pos: ["CD20", "PAX5", "OCT2", "BOB1"],
+    ihc_neg: ["CD30", "CD15"],
+    classico_markers: ["CD20", "PAX5", "OCT2", "BOB1"],
+    l2core: ["Architettura + background: diffuso, NO meshwork FDC (CD21/CD23) → differenzia da NLPBL", "CD68/CD163 (istiociti) + CD3 (T) di fondo", "EBER ISH", "Clonalità IGH", "OCT2 e BOB1"],
+    l2opt: ["Esclusione cHL (CD30/CD15)", "EMA", "CD21/CD23 (assenza di meshwork FDC vs NLPBL)"],
+    traps: [
+      "Discriminante reale vs NLPBL = architettura: THRLBCL diffuso, NO meshwork FDC (CD21/CD23−), background di istiociti (CD68/CD163). NLPBL nodulare, FDC+, background di piccoli B",
+      "Rosette (PD1/CD57): di supporto, non defining. La loro assenza NON conferma THRLBCL — valutare architettura e meshwork FDC",
+      "Cellule grandi >10% o aggregati: riconsiderare DLBCL NOS"
+    ],
+    notes: null,
+    hgbl_banner: false
+  },
+  MCL_BLAST: {
+    name: "MCL blastoide",
+    pattern: ["diffuso-grandi"],
+    morphology: "Grandi blastiche, cromatina dispersa, mitosi elevate — simula linfoblastico",
+    ihc_pos: ["CD5", "CycD1/BCL1", "SOX11"],
+    ihc_neg: ["TdT"],
+    classico_markers: ["CD5", "CycD1/BCL1", "SOX11"],
+    l2core: ["FISH CCND1/BCL1 t(11;14) — conferma (quasi-obbligatorio)", "TP53 IHC/NGS", "Ki67"],
+    l2opt: ["NGS", "IGHV", "Esclusione B-ALL (TdT)"],
+    traps: [
+      "Simula linfoblastico: TdT− è discriminante chiave vs B-ALL",
+      "Ki67 molto elevato: valutare TP53 — variante TP53-mutata ha prognosi molto sfavorevole"
+    ],
+    notes: null,
+    hgbl_banner: false
+  },
+  MCL_PLEO: {
+    name: "MCL pleomorfo",
+    pattern: ["diffuso-grandi"],
+    morphology: "Grandi pleomorfe, nuclei irregolari prominenti — simula DLBCL",
+    ihc_pos: ["CD5", "CycD1/BCL1"],
+    ihc_neg: [],
+    classico_markers: ["CD5", "CycD1/BCL1"],
+    l2core: ["FISH CCND1/BCL1 t(11;14) — conferma (quasi-obbligatorio)", "TP53 IHC/NGS", "Ki67"],
+    l2opt: ["NGS", "Esclusione DLBCL se CycD1 debole/focale (controllo tecnico)"],
+    traps: [
+      "SOX11 può essere debole o focale nelle varianti pleomorfe",
+      "CycD1 debole: verificare clone anticorpale e controllo tecnico"
+    ],
+    notes: null,
+    hgbl_banner: false
+  },
+  HGBL_NOS: {
+    name: "HGBL NOS",
+    pattern: ["diffuso-grandi"],
+    morphology: "Blastoid/intermedia tra DLBCL e Burkitt — Ki67 >80%",
+    ihc_pos: ["CD20"],
+    ihc_neg: ["TdT", "CycD1/BCL1"],
+    classico_markers: ["CD20"],
+    l2core: [
+      "1. FISH MYC + BCL2 + BCL6 → se pos: riclassificare come HGBL-DH/TH",
+      "2. FISH MYC isolato + morfologia → se t(8;14) + ID3/TCF3: Burkitt",
+      "3. TdT + CD34 → esclude B-ALL",
+      "4. Cyclin D1/SOX11 → esclude MCL blastoide",
+      "5. Residuo: HGBL NOS"
+    ],
+    l2opt: ["NGS ID3/TCF3/CCND3", "GEP"],
+    traps: [
+      "Diagnosi per esclusione — completare workup DH/TH → Burkitt → B-ALL → MCL blastoide prima di concludere",
+      "MYC singolo riarrangiato (senza BCL2/BCL6) → WHO-HAEM5: classificare come DLBCL NOS, non HGBL",
+      "Spesso indica campione subottimale, biologia incompleta, o caso borderline DLBCL/Burkitt"
+    ],
+    notes: "Categoria residuale — diagnosi per esclusione. Rivalutare con workup completo.",
+    hgbl_banner: true
+  },
+  HCL: {
+    name: "HCL (tricoileucemia)",
+    pattern: ["diffuso-piccole"],
+    morphology: "Medie, citoplasma abbondante con prolungamenti (\"hairy\") — BM \"fried egg\"; sangue/milza (polpa rossa); LN raro",
+    ihc_pos: ["CD20 (bright)", "CD22", "CD103", "CD25", "CD123", "Annessina A1"],
+    ihc_neg: ["CD5", "CD10"],
+    classico_markers: ["Annessina A1", "CD103", "CD25"],
+    l2core: ["BRAF V600E (PCR/NGS)", "DBA.44", "TRAP", "CD11c"],
+    l2opt: ["IGHV4-34 (se BRAF-neg → variante HCL)", "MAP2K1", "Esclusione SDRPSBCL"],
+    traps: [
+      "CycD1± debole: non equivale a MCL — discriminante: Annessina A1+ e BRAF V600E",
+      "BRAF-neg: considerare variante HCL (IGHV4-34, MAP2K1)"
+    ],
+    notes: null,
+    hgbl_banner: false
+  },
+  LPL: {
+    name: "LPL/WM",
+    pattern: ["diffuso-piccole"],
+    morphology: "Piccole + plasmacitoidi + plasmacellule ± mastociti (BM) — IgM paraproteinemia",
+    ihc_pos: ["CD20", "CD138 (plasmacellule)", "IgM (citoplasmatica)"],
+    ihc_neg: ["CD5", "CD10", "CycD1/BCL1"],
+    classico_markers: ["CD20", "CD138 (plasmacellule)"],
+    l2core: ["MYD88 L265P (PCR/NGS)", "Clonalità IGH/IGK", "Sierologia IgM"],
+    l2opt: ["CXCR4 (prognostico)", "Esclusione MZL plasmacitoide (MALT1-FISH neg)"],
+    traps: [
+      "MUM1+: è un marker di differenziazione plasmacitoide — positivo sia in LPL che in MZL plasmacitoide; non discriminante",
+      "MYD88 L265P assente in ~5–10% dei LPL: non esclude la diagnosi se morfologia e clinica sono concordanti",
+      "Differenziazione da MZL plasmacitoide: MYD88 L265P+ (LPL) vs MALT1-riarrangiamento (MZL)"
+    ],
+    notes: null,
+    hgbl_banner: false
+  }
+};
+
+// ======================== KNOWLEDGE BASE — MARKERS (Task 3) ========================
+const MARKER_WEIGHTS = {
+  "CycD1/BCL1":   "strong",
+  "Annessina A1": "strong",
+  "SOX11":        "strong",
+  "MYD88 L265P":  "strong",
+  "CD5":          "supportive",
+  "CD10":         "supportive",
+  "BCL6":         "supportive",
+  "BCL2":         "supportive",
+  "MUM1":         "supportive",
+  "CD23":         "supportive",
+  "LEF1":         "supportive",
+  "Ki67":         "supportive",
+  "MYC IHC":      "supportive",
+  "PD1":          "supportive",
+  "CD20":         "weak",
+  "PAX5":         "weak",
+  "CD79a":        "weak"
+};
+
+const MARKER_TECH_RISK = {
+  "BCL6":       "Sensibile a decalcificazione e fissazione prolungata — verificare controllo interno",
+  "CD10":       "Sensibile a decalcificazione — verificare controllo interno",
+  "MYC IHC":    "Antigene labile — verificare controllo interno; cutoff non standardizzato (≥40% o ≥50%)",
+  "CD20":       "Post-trattamento: può essere falsamente negativo dopo rituximab",
+  "CycD1/BCL1": "Positività focale o debole: trappola HCL — non equivale a MCL; verificare distribuzione e intensità",
+  "Annessina A1":"Fondo elevato può dare falsi positivi — verificare controllo negativo"
+};
+
+// ======================== KNOWLEDGE BASE — TREE (Task 3) ========================
+// Fix 1 applied: composite multi-marker nodes use type:"choice" not type:"ihc"
+// Fix 2 applied: dif_cito options have proper removes arrays
+const TREE = {
+  start: "topo",
+  nodes: {
+
+    // ── Step 0: Asse topografico ──────────────────────────────────
+    topo: {
+      type: "info",
+      question: "Asse topografico",
+      note: "Contestualizza l'interpretazione — non esclude entità",
+      options: [
+        { label: "Linfonodo (LN)",                          next: "lineage_gate" },
+        { label: "Tessuto extranodale (MALT, SNC, cute…)",  next: "lineage_gate" },
+        { label: "BM / sangue / milza",                     next: "lineage_gate" }
+      ],
+      differential: null,
+      trap: null
+    },
+
+    // ── Step 0b: Gate di linea (CD3 / CD20) ──────────────────────
+    lineage_gate: {
+      type: "choice",
+      question: "CD3 / CD20 — doppia colorazione",
+      note: "Prima discriminazione di linea. Se T: questo algoritmo non si applica.",
+      options: [
+        {
+          label: "CD20+ / CD3− → linfoma B (procedi)",
+          removes: [],
+          next: "arch"
+        },
+        {
+          label: "CD3+ / CD20− → linfoma T o NK",
+          removes: [],
+          next: "t_cell_exit"
+        },
+        {
+          label: "Ambiguo / doppio positivo / doppio negativo → prosegui con cautela",
+          removes: [],
+          next: "arch"
+        }
+      ],
+      differential: null,
+      trap: "CD20 può essere downregolato post-rituximab o negativizzato in varianti rare (DLBCL plasmoblastico). PAX5 e CD79a sono marcatori B alternativi. CD3 focale non debole non equivale a fenotipo T."
+    },
+
+    // ── Uscita algoritmo — fenotipo T ─────────────────────────────
+    t_cell_exit: {
+      type: "result_note",
+      question: "CD3+ / CD20− — fuori dall'algoritmo LNH B",
+      note: "Questo algoritmo copre esclusivamente i linfomi B. Un profilo CD3+/CD20− orienta verso linfoma T o NK-cellulare.\n\nPassare all'algoritmo diagnostico T/NK. Se il fenotipo è inatteso rispetto alla morfologia, verificare controlli tecnici (CD20 può essere falsamente negativo) e considerare PAX5 / CD79a come marcatori B alternativi.",
+      options: [
+        { label: "← Ricomincia (rivaluta o nuova biopsia)", removes: [], next: "topo" }
+      ],
+      differential: [],
+      trap: null
+    },
+
+    // ── Step 1: Architettura ──────────────────────────────────────
+    arch: {
+      type: "choice",
+      question: "Pattern architetturale",
+      note: "Definisce il ramo diagnostico",
+      options: [
+        { label: "Nodulare",        removes: [], next: "nod_cito"  },
+        { label: "Diffuso",         removes: [], next: "dif_cito"  },
+        { label: "Incerto / Misto", removes: [], next: "incerto"   }
+      ],
+      differential: null,
+      trap: null
+    },
+
+    // ── Ramo incerto ─────────────────────────────────────────────
+    incerto: {
+      type: "result_note",
+      question: "Architettura non classificabile",
+      note: "Rivaluta dopo allargamento bioptico, ripetizione del campionamento, o esclusione di artefatti da decalcificazione. Architettura distorta o parzialmente coinvolta non permette classificazione affidabile.",
+      options: [],
+      differential: [],
+      trap: null
+    },
+
+    // ════════════════════ RAMO NODULARE ══════════════════════════
+
+    nod_cito: {
+      type: "choice",
+      question: "Citologia",
+      note: "Componente cellulare predominante",
+      options: [
+        {
+          label: "Piccole-miste (centrociti ± centroblasti)",
+          removes: ["NLPBL", "FLBCL"],
+          next: "nod_ki67"
+        },
+        {
+          label: "Grandi (cluster CB puri / LP \"popcorn\")",
+          removes: ["FL", "MCL", "MZL", "CLL"],
+          next: "nod_grandi_arch"
+        }
+      ],
+      differential: ["FL", "FLBCL", "MCL", "NLPBL", "MZL", "CLL"],
+      trap: null
+    },
+
+    nod_ki67: {
+      type: "choice",
+      question: "Ki67 — livello",
+      marker: "Ki67",
+      note: "Orienta l'aggressività biologica prima dell'IHC specifica.",
+      options: [
+        { label: "+  (>20–25%)", removes: [], next: "nod_cd5" },
+        { label: "−  (≤20%)",    removes: [], next: "nod_cd5" },
+        { label: "?",            removes: [], next: "nod_cd5" }
+      ],
+      differential: null,
+      trap: "Ki67 >20–25% in nodulare piccole cellule: inusuale per linfoma indolente — escludere HGBL su pattern nodulare, rivalutare la morfologia. In MCL è indice prognostico (>30%: NGS)."
+    },
+
+    nod_cd5: {
+      type: "ihc",
+      question: "CD5",
+      marker: "CD5",
+      note: null,
+      options: [
+        { label: "+", removes: ["FL", "MZL"],  next: "nod_cycd1" },
+        { label: "−", removes: ["MCL", "CLL"], next: "nod_cd10"  },
+        { label: "?", removes: [],             next: "nod_cycd1" }
+      ],
+      differential: null,
+      trap: null
+    },
+
+    nod_cycd1: {
+      type: "ihc",
+      question: "Cyclin D1 / BCL1",
+      marker: "CycD1/BCL1",
+      note: "Valuta intensità e distribuzione. Positività focale o debole: vedi trappola.",
+      options: [
+        { label: "+", removes: ["CLL"], next: "nod_mcl_sox11" },
+        { label: "−", removes: ["MCL"], next: "nod_cll_cd23"  },
+        { label: "?", removes: [],      next: "nod_mcl_sox11" }
+      ],
+      differential: null,
+      trap: "CycD1 focale/debole: non equivale a MCL. HCL può dare CycD1± — discriminante: Annessina A1 + BRAF V600E."
+    },
+
+    nod_mcl_sox11: {
+      type: "ihc",
+      question: "SOX11",
+      marker: "SOX11",
+      note: "Conferma MCL classico. SOX11− apre variante leukemic.",
+      options: [
+        { label: "+", removes: [], next: "result_MCL" },
+        { label: "−", removes: [], next: "result_MCL" },
+        { label: "?", removes: [], next: "result_MCL" }
+      ],
+      differential: null,
+      trap: "SOX11−: sospettare variante leukemic non-nodal MCL (indolente, linfocitosi senza LN). CycD1−/SOX11+: FISH CCND2 e CCND3."
+    },
+
+    nod_cll_cd23: {
+      type: "ihc",
+      question: "CD23 + LEF1",
+      marker: "CD23",
+      note: "Conferma CLL/SLL dopo CycD1−. CD23+ + LEF1+ è il pattern classico.",
+      options: [
+        { label: "+", removes: [],      next: "result_CLL" },
+        { label: "−", removes: ["CLL"], next: "cd5pos_atypical" },
+        { label: "?", removes: [],      next: "result_CLL" }
+      ],
+      differential: null,
+      trap: "CD23− con CycD1−: pensare a MCL CycD1-negativo (SOX11+, FISH CCND2/CCND3) o CLL atipica. LEF1 è il marcatore più robusto per CLL — positivo anche nei casi CD23-deboli/negativi. CD23 debole-focale non esclude CLL."
+    },
+
+    // CD5+ / CycD1− / CD23− (LEF1−): B CD5+ atipico — NON MCL classico
+    cd5pos_atypical: {
+      type: "result_note",
+      question: "B CD5+ CycD1− CD23− — non classificabile come MCL classico né CLL",
+      note: "Profilo CD5+ con Cyclin D1− e CD23−/LEF1−: NON è MCL classico (CycD1−) né CLL tipica (CD23−/LEF1−).\n\nConsiderare:\n• MCL Cyclin D1-negativo → SOX11+ è il segnale; FISH CCND2 e CCND3.\n• MZL CD5+ (variante, ~10–20% degli MZL può esprimere CD5).\n• CLL atipica → verificare LEF1 (più robusto di CD23).\n• Se cellule grandi: DLBCL CD5+.\n\nNext step a più alto rendimento: SOX11 IHC + FISH CCND1/CCND2/CCND3; LEF1 per CLL.",
+      options: [
+        { label: "← Rivaluta morfologia / marcatori", removes: [], next: "topo" }
+      ],
+      differential: [],
+      trap: null
+    },
+
+    nod_cd10: {
+      type: "ihc",
+      question: "CD10",
+      marker: "CD10",
+      note: null,
+      options: [
+        { label: "+", removes: ["MZL"], next: "nod_bcl6"   },
+        { label: "−", removes: ["FL"],  next: "result_MZL" },
+        { label: "?", removes: [],      next: "nod_bcl6"   }
+      ],
+      differential: null,
+      trap: null
+    },
+
+    nod_bcl6: {
+      type: "ihc",
+      question: "BCL6",
+      marker: "BCL6",
+      note: "BCL6+ conferma derivazione germinale centro-follicolare — atteso in FL.",
+      options: [
+        { label: "+", removes: [],  next: "nod_bcl2" },
+        { label: "−", removes: [],  next: "nod_bcl2" },
+        { label: "?", removes: [],  next: "nod_bcl2" }
+      ],
+      differential: null,
+      trap: "BCL6−/CD10+ in nodulare piccole-miste: inusuale per FL — verificare controllo tecnico (BCL6 è sensibile a fissazione prolungata e decalcificazione). Considerare MZL con CD10 aberrante se morfologia non convincente."
+    },
+
+    nod_bcl2: {
+      type: "ihc",
+      question: "BCL2",
+      marker: "BCL2",
+      note: "BCL2+ nei centri germinativi neoplastici: criterio chiave per FL t(14;18). Valutare selettivamente le cellule neoplastiche — non lo stroma reattivo.",
+      options: [
+        { label: "+", removes: [],  next: "result_FL" },
+        { label: "−", removes: [],  next: "result_FL" },
+        { label: "?", removes: [],  next: "result_FL" }
+      ],
+      differential: null,
+      trap: "BCL2− non esclude FL: 10–15% è FISH t(14;18)+ ma BCL2 IHC−. Casi dubbi BCL2−: richiedere FISH BCL2 t(14;18) o PCR IGH-BCL2 (MBR/mcr — più sensibile per varianti a minor breakpoint cluster). FL 3B/FLBCL spesso BCL2−. Fissazione inadeguata falsifica il risultato. ⚠ FL inguinale: CD23 espresso in 30–40% — non confondere con CLL/SLL."
+    },
+
+    // Step 1: architettura + CD10 (discriminante reale NLPBL vs FLBCL)
+    nod_grandi_arch: {
+      type: "choice",
+      question: "Architettura e CD10",
+      note: "Pattern delle cellule grandi e profilo GC. Le cellule LP (NLPBL) sono BCL6+ ma CD10−; FLBCL mostra sheets/cluster di centroblasti spesso CD10+.",
+      options: [
+        { label: "LP (\"popcorn\") sparse in background B nodulare · CD10−", removes: ["FLBCL"], next: "nod_grandi_rosette" },
+        { label: "Cluster / sheets di centroblasti · CD10+ e/o BCL2±", removes: ["NLPBL"], next: "result_FLBCL" }
+      ],
+      differential: null,
+      trap: "Cellule LP: BCL6+ ma CD10−. CD10+ in proliferazione B nodulare → pensare FL/FLBCL, non NLPBL. Meshwork FDC (CD21/CD23) + background di piccoli B depongono per NLPBL."
+    },
+
+    // Step 2: rosette come CONFERMA di supporto (non defining)
+    nod_grandi_rosette: {
+      type: "ihc",
+      question: "Rosette peritumorali — PD1 (preferibile) o CD57 (alternativa)",
+      marker: "PD1",
+      note: "Rosette di TFH attorno alle cellule LP. PD1 più sensibile; CD57 in assenza di PD1 (meno sensibile). Reperto di SUPPORTO: l'assenza NON esclude NLPBL.",
+      options: [
+        { label: "+ (rosette presenti)",     removes: ["FLBCL"], next: "result_NLPBL" },
+        { label: "− / ? (assenti o dubbie)", removes: [],        next: "result_NLPBL" }
+      ],
+      differential: null,
+      trap: "Rosette assenti NON escludono NLPBL (specie con CD57). Se dubbio: CD21/CD23 (meshwork FDC), IgD, background. Diffuso con istiociti CD68/CD163 → riconsiderare THRLBCL."
+    },
+
+    // ════════════════════ RAMO DIFFUSO — CITOLOGIA ═══════════════
+
+    // Fix 2: rimozioni corrette per separare i due rami
+    dif_cito: {
+      type: "choice",
+      question: "Citologia — dimensione cellulare",
+      note: "Determina il ramo diagnostico diffuso",
+      options: [
+        {
+          label: "Grandi (>2× linfocita) o blastoid",
+          removes: ["CLL", "MCL", "MZL", "HCL", "LPL"],
+          next: "dif_l_ki67_early"
+        },
+        {
+          label: "Piccole / intermedie (<2× linfocita)",
+          removes: ["DLBCL", "HGBL_DH", "BURKITT", "PMBL", "THRLBCL", "MCL_BLAST", "MCL_PLEO", "HGBL_NOS"],
+          next: "dif_s_ki67_early"
+        }
+      ],
+      differential: ["DLBCL", "HGBL_DH", "BURKITT", "PMBL", "THRLBCL", "MCL_BLAST", "MCL_PLEO", "HGBL_NOS",
+                     "CLL", "MCL", "MZL", "HCL", "LPL"],
+      trap: null
+    },
+
+    // ════════════════════ RAMO DIFFUSO GRANDI ════════════════════
+
+    dif_l_ki67_early: {
+      type: "choice",
+      question: "Ki67 — screening iniziale",
+      marker: "Ki67",
+      note: "Primo orientamento biologico prima dell'IHC specifica. Ki67 ~100% orienta a Burkitt; elevato ma <100% suggerisce HGBL.",
+      options: [
+        { label: "+  (~100%, ≥95%)",  removes: [],           next: "dif_l_cd5_cycd1" },
+        { label: "−  (elevato <95%)", removes: [],           next: "dif_l_cd5_cycd1" },
+        { label: "?  Non eseguito",   removes: [],           next: "dif_l_cd5_cycd1" }
+      ],
+      differential: null,
+      trap: "Ki67 ~100% è criterio diagnostico chiave per Burkitt (WHO-HAEM5: MYC ≥95% cellule, CD10+, BCL2−, FISH t(8;14)). Ki67 ≥80% ma <100%: HGBL-DH o HGBL-NOS. Ki67 molto alto + CycD1+: MCL blastoide."
+    },
+
+    // Fix 1: type "choice" — chiede CD5 + CycD1 insieme
+    dif_l_cd5_cycd1: {
+      type: "choice",
+      question: "CD5 + Cyclin D1/BCL1",
+      note: "CD5+/CycD1+ orienta verso MCL variante aggressiva. CD5−/CycD1− è il pattern tipico di DLBCL/HGBL.",
+      options: [
+        {
+          label: "Entrambi + (CD5+ e CycD1/BCL1+)",
+          removes: ["DLBCL", "HGBL_DH", "BURKITT", "PMBL", "THRLBCL", "HGBL_NOS"],
+          next: "dif_l_mcl_ki67"
+        },
+        {
+          label: "Entrambi − (CD5− e CycD1/BCL1−)",
+          removes: ["MCL_BLAST", "MCL_PLEO"],
+          next: "dif_l_ki67"
+        },
+        {
+          label: "Discordante (uno + / uno −) o incerto",
+          removes: ["MCL_BLAST", "MCL_PLEO"],
+          next: "dif_l_ki67"
+        }
+      ],
+      differential: ["DLBCL", "HGBL_DH", "BURKITT", "PMBL", "THRLBCL", "MCL_BLAST", "MCL_PLEO", "HGBL_NOS"],
+      trap: "CD5+ DLBCL (raro, ~10%): CD5+ senza CycD1 — non è MCL. Verificare CycD1 con controllo tecnico adeguato prima di concludere."
+    },
+
+    // Fix 1: type "choice" — chiede Ki67 + morfologia insieme
+    dif_l_mcl_ki67: {
+      type: "choice",
+      question: "Ki67 + morfologia — blastoide o pleomorfa?",
+      note: "Distingue MCL blastoide da MCL pleomorfo",
+      options: [
+        { label: "Ki67 molto elevato + morfologia blastica",  removes: ["MCL_PLEO"], next: "result_MCL_BLAST" },
+        { label: "Ki67 molto elevato + morfologia pleomorfa", removes: ["MCL_BLAST"], next: "result_MCL_PLEO"  },
+        { label: "? Incerto",                                 removes: [],            next: "result_MCL_BLAST" }
+      ],
+      differential: null,
+      trap: "MCL blastoide: cromatina dispersa, mitosi elevate — simula linfoblastico (TdT−). MCL pleomorfo: nuclei grandi irregolari — simula DLBCL."
+    },
+
+    dif_l_ki67: {
+      type: "choice",
+      question: "CD10 + BCL2 — profilo Burkitt?",
+      note: "CD10+ e BCL2− confermano il sospetto Burkitt (Ki67 ~100% già valutato). BCL2+ o CD10−: esclude Burkitt.",
+      options: [
+        {
+          label: "CD10+ e BCL2−",
+          removes: ["DLBCL", "HGBL_DH", "PMBL", "THRLBCL", "HGBL_NOS"],
+          next: "result_BURKITT"
+        },
+        {
+          label: "Altro profilo (CD10− o BCL2+)",
+          removes: ["BURKITT"],
+          next: "dif_l_pmbl"
+        }
+      ],
+      differential: null,
+      trap: "BCL2+: anche con Ki67 ~100% e CD10+ esclude Burkitt tipico — considerare HGBL-DH con riarrangiamento MYC+BCL2. CD10−: DLBCL non-GCB ad alto grado."
+    },
+
+    dif_l_pmbl: {
+      type: "choice",
+      question: "Sede mediastinica + CD30 + CD23?",
+      note: "PMBL: diagnosi spesso clinico-radiologica + IHC",
+      options: [
+        {
+          label: "Sì — massa mediastinica + CD30+ + CD23+",
+          removes: ["DLBCL", "HGBL_DH", "THRLBCL", "HGBL_NOS"],
+          next: "result_PMBL"
+        },
+        {
+          label: "No",
+          removes: ["PMBL"],
+          next: "dif_l_thrlbcl"
+        }
+      ],
+      differential: null,
+      trap: "PMBL senza massa mediastinica: diagnosi molto incerta. CD23 può essere assente in alcuni casi."
+    },
+
+    dif_l_thrlbcl: {
+      type: "choice",
+      question: "Morfologia: rare cellule grandi (<10%) in ricco fondo T/istiociti?",
+      note: "Caratteristica di THRLBCL — architettura diffusa",
+      options: [
+        {
+          label: "Sì — <10% cellule grandi, fondo T/istiociti ricco",
+          removes: ["DLBCL", "HGBL_DH", "HGBL_NOS"],
+          next: "result_THRLBCL"
+        },
+        {
+          label: "No",
+          removes: ["THRLBCL"],
+          next: "dif_l_hans_cd10"
+        }
+      ],
+      differential: null,
+      trap: "Cellule grandi >10%: riconsiderare DLBCL NOS. Architettura nodulare + rosette PD1+: pensare a NLPBL."
+    },
+
+    // Hans: 3 step IHC separati — CD10 → BCL6 → MUM1
+    dif_l_hans_cd10: {
+      type: "ihc",
+      question: "Hans — CD10 (cutoff ≥30%)",
+      marker: "CD10",
+      note: "CD10 ≥30%: → GCB diretto. CD10 <30%: procedi con BCL6.",
+      options: [
+        { label: "+  (≥30% → GCB)", removes: [], next: "dif_l_de_gcb"    },
+        { label: "−  (<30%)",        removes: [], next: "dif_l_hans_bcl6" },
+        { label: "?",                removes: [], next: "dif_l_hans_bcl6" }
+      ],
+      differential: null,
+      trap: null
+    },
+
+    dif_l_hans_bcl6: {
+      type: "ihc",
+      question: "Hans — BCL6 (cutoff ≥30%)",
+      marker: "BCL6",
+      note: "BCL6 ≥30% con CD10<30%: procedi con MUM1. BCL6 <30%: → non-GCB.",
+      options: [
+        { label: "+  (≥30%)",           removes: [], next: "dif_l_hans_mum1"  },
+        { label: "−  (<30% → non-GCB)", removes: [], next: "dif_l_de_nongcb"  },
+        { label: "?",                   removes: [], next: "dif_l_hans_mum1"  }
+      ],
+      differential: null,
+      trap: "BCL6 sensibile a fissazione prolungata e decalcificazione — verificare controllo interno."
+    },
+
+    dif_l_hans_mum1: {
+      type: "ihc",
+      question: "Hans — MUM1 (cutoff ≥30%)",
+      marker: "MUM1",
+      note: "MUM1 <30% + BCL6≥30% + CD10<30%: → GCB. MUM1 ≥30%: → non-GCB.",
+      options: [
+        { label: "+  (≥30% → non-GCB)",        removes: [], next: "dif_l_de_nongcb" },
+        { label: "−  (<30% → GCB)",            removes: [], next: "dif_l_de_gcb"    },
+        { label: "?  (COO non classificabile)", removes: [], next: "result_DLBCL"    }
+      ],
+      differential: null,
+      trap: "MUM1 è il marcatore Hans con maggiore variabilità interobserver — applicare il cutoff 30% con rigore."
+    },
+
+    // Double expressor — MYC IHC + BCL2 IHC — chiesto DOPO Hans (COO già determinato)
+    dif_l_de_gcb: {
+      type: "choice",
+      question: "MYC IHC + BCL2 IHC — Double expressor?",
+      note: "COO Hans: GCB. Valutare double expressor (MYC ≥40% + BCL2 ≥50%) — prognostico e rilevante per FISH.",
+      options: [
+        { label: "Sì — MYC ≥40% E BCL2 ≥50% (double expressor)", removes: [],         next: "dif_l_de_fish_gcb"    },
+        { label: "No — almeno uno sotto soglia",                   removes: ["HGBL_DH"], next: "result_DLBCL_GCB"    },
+        { label: "? Non eseguiti / incerto",                       removes: [],         next: "result_DLBCL_GCB"    }
+      ],
+      differential: null,
+      trap: "MYC cutoff: ≥40% (alcuni ≥50%, non standardizzato). BCL2 cutoff: ≥50%. Double expressor GCB: prognosi peggiore ma non equivale a DH/TH — FISH obbligatorio. GCB-DE: spesso EZH2 mut, t(14;18)+."
+    },
+
+    dif_l_de_fish_gcb: {
+      type: "result_note",
+      question: "Double expressor GCB — FISH MYC + BCL2 + BCL6",
+      note: "⚠ MYC IHC ≥40% + BCL2 IHC ≥50% = Double expressor. FISH MYC + BCL2 + BCL6 è obbligatorio per escludere HGBL-DH/TH. Se FISH negativo → DLBCL NOS GCB double expressor.",
+      options: [
+        { label: "FISH neg → DLBCL GCB double expressor", removes: ["HGBL_NOS"], next: "result_DLBCL_GCB" },
+        { label: "FISH neg MA morfologia blastoide/intermedia (DLBCL/Burkitt) → HGBL NOS", removes: [], next: "result_HGBL_NOS" },
+        { label: "FISH pos → HGBL-DH/TH",                 removes: ["DLBCL_GCB"], next: "result_HGBL_DH"  }
+      ],
+      differential: null,
+      trap: null
+    },
+
+    dif_l_de_nongcb: {
+      type: "choice",
+      question: "MYC IHC + BCL2 IHC — Double expressor?",
+      note: "COO Hans: non-GCB/ABC. Valutare double expressor (MYC ≥40% + BCL2 ≥50%) — prognosi particolarmente sfavorevole in non-GCB.",
+      options: [
+        { label: "Sì — MYC ≥40% E BCL2 ≥50% (double expressor)", removes: [],         next: "dif_l_de_fish_nongcb" },
+        { label: "No — almeno uno sotto soglia",                   removes: ["HGBL_DH"], next: "result_DLBCL_nonGCB"  },
+        { label: "? Non eseguiti / incerto",                       removes: [],         next: "result_DLBCL_nonGCB"  }
+      ],
+      differential: null,
+      trap: "MYC cutoff: ≥40%. BCL2 cutoff: ≥50%. Double expressor non-GCB/ABC: categoria ad alto rischio — segnalare per trial clinici (venetoclax, ibrutinib). FISH MYC+BCL2+BCL6 obbligatorio."
+    },
+
+    dif_l_de_fish_nongcb: {
+      type: "result_note",
+      question: "Double expressor non-GCB — FISH MYC + BCL2 + BCL6",
+      note: "⚠ MYC IHC ≥40% + BCL2 IHC ≥50% = Double expressor. FISH MYC + BCL2 + BCL6 è obbligatorio per escludere HGBL-DH/TH. Se FISH negativo → DLBCL NOS non-GCB double expressor.",
+      options: [
+        { label: "FISH neg → DLBCL non-GCB double expressor", removes: ["HGBL_NOS"], next: "result_DLBCL_nonGCB" },
+        { label: "FISH neg MA morfologia blastoide/intermedia (DLBCL/Burkitt) → HGBL NOS", removes: [], next: "result_HGBL_NOS" },
+        { label: "FISH pos → HGBL-DH/TH",                     removes: ["DLBCL_nonGCB"], next: "result_HGBL_DH"      }
+      ],
+      differential: null,
+      trap: null
+    },
+
+    // ════════════════════ RAMO DIFFUSO PICCOLE ═══════════════════
+
+    dif_s_ki67_early: {
+      type: "choice",
+      question: "Ki67 — screening iniziale",
+      marker: "Ki67",
+      note: "Primo orientamento biologico. Ki67 elevato in cellule piccole è inatteso per linfomi indolenti.",
+      options: [
+        { label: "+  (>30%)",        removes: [], next: "dif_s_cd5" },
+        { label: "−  (≤30%)",        removes: [], next: "dif_s_cd5" },
+        { label: "?  Non eseguito",  removes: [], next: "dif_s_cd5" }
+      ],
+      differential: null,
+      trap: "Ki67 >30% in cellule piccole: (1) MCL blastoide su pattern diffuso — CycD1 obbligatorio; (2) trasformazione Richter in CLL/SLL — storia clinica; (3) LPL/WM in fase espansiva. Ki67 <5%: tipico CLL indolente."
+    },
+
+    dif_s_cd5: {
+      type: "ihc",
+      question: "CD5",
+      marker: "CD5",
+      note: null,
+      options: [
+        { label: "+", removes: ["MZL", "HCL", "LPL"], next: "dif_s_cycd1" },
+        { label: "−", removes: ["MCL", "CLL"],         next: "dif_s_anna1" },
+        { label: "?", removes: [],                     next: "dif_s_cycd1" }
+      ],
+      differential: ["CLL", "MCL", "MZL", "HCL", "LPL"],
+      trap: null
+    },
+
+    dif_s_cycd1: {
+      type: "ihc",
+      question: "Cyclin D1 / BCL1",
+      marker: "CycD1/BCL1",
+      note: "Valuta intensità e distribuzione.",
+      options: [
+        { label: "+", removes: ["CLL"], next: "result_MCL"    },
+        { label: "−", removes: [],      next: "dif_s_sox11"   },
+        { label: "?", removes: [],      next: "result_MCL"    }
+      ],
+      differential: null,
+      trap: "CycD1 debole/focale nel contesto BM/milza: ricordare HCL può dare CycD1± — Annessina A1 discrimina."
+    },
+
+    dif_s_sox11: {
+      type: "ihc",
+      question: "SOX11",
+      marker: "SOX11",
+      note: "In CD5+/CycD1−: SOX11+ identifica MCL CycD1-negativo. SOX11− orienta verso CLL/SLL.",
+      options: [
+        { label: "+", removes: ["CLL"], next: "result_MCL"       },
+        { label: "−", removes: ["MCL"], next: "dif_s_cll_cd23"   },
+        { label: "?", removes: [],      next: "dif_s_cll_cd23"   }
+      ],
+      differential: null,
+      trap: "MCL CycD1-negativo (~5% MCL): SOX11+ è il marcatore discriminante chiave. SOX11+ con CycD1−: richiedere FISH CCND1 (pos in ~70%), poi CCND2/CCND3 se neg. SOX11−/CycD1−: variante leukemic non-nodal MCL (indolente) oppure CLL atipica — storia clinica e citometria di flusso."
+    },
+
+    dif_s_cll_cd23: {
+      type: "ihc",
+      question: "CD23 + LEF1",
+      marker: "CD23",
+      note: "Conferma CLL/SLL in CD5+/CycD1−. CD23+ + LEF1+ è il pattern classico.",
+      options: [
+        { label: "+", removes: [],      next: "result_CLL" },
+        { label: "−", removes: [],      next: "result_CLL" },
+        { label: "?", removes: [],      next: "result_CLL" }
+      ],
+      differential: null,
+      trap: "CD23− in CD5+/CycD1−: (1) MCL CycD1-negativo — richiedere SOX11 e FISH CCND1; (2) CLL atipica — LEF1 è marcatore più robusto, positivo anche nei casi CD23-negativi; (3) MZL splenica con aberrante CD5. CD23 debole-focale non esclude CLL."
+    },
+
+    dif_s_anna1: {
+      type: "ihc",
+      question: "Annessina A1",
+      marker: "Annessina A1",
+      note: "Marcatore specifico per HCL",
+      options: [
+        { label: "+", removes: ["MZL", "LPL"],     next: "result_HCL" },
+        { label: "−", removes: ["HCL"],             next: "dif_s_mum1" },
+        { label: "?", removes: [],                  next: "dif_s_mum1" }
+      ],
+      differential: null,
+      trap: "Fondo elevato può dare falsi positivi per Annessina A1 — verificare controllo negativo."
+    },
+
+    dif_s_mum1: {
+      type: "choice",
+      question: "Differenziazione plasmacitoide + IgM sierica",
+      note: "La componente plasmacitoide/plasmacellulare (CD138+, IgM citoplasmatica) orienta verso LPL/WM. Il discriminante definitivo è MYD88 L265P (molecolare).",
+      options: [
+        { label: "Sì — componente plasmacitoide e/o IgM paraproteinemia", removes: ["MZL"], next: "result_LPL" },
+        { label: "No — morfologia linfoide pura, IgM normale",             removes: ["LPL"], next: "result_MZL" },
+        { label: "? Incerto",                                               removes: [],      next: "result_MZL" }
+      ],
+      differential: null,
+      trap: "MUM1 è positivo sulla componente plasmacitoide sia in LPL che in MZL con differenziazione plasmacitoide — non usarlo come unico discriminante. Il criterio chiave è: IgM paraproteinemia + MYD88 L265P (PCR/NGS)."
+    },
+
+    // ════════════════════ NODI RISULTATO ════════════════════════
+    result_FL:        { type: "result", entity: "FL"        },
+    result_FLBCL:     { type: "result", entity: "FLBCL"     },
+    result_MCL:       { type: "result", entity: "MCL"       },
+    result_NLPBL:     { type: "result", entity: "NLPBL"     },
+    result_MZL:       { type: "result", entity: "MZL"       },
+    result_CLL:       { type: "result", entity: "CLL"       },
+    result_DLBCL:     { type: "result", entity: "DLBCL"     },
+    result_DLBCL_GCB:    { type: "result", entity: "DLBCL_GCB"    },
+    result_DLBCL_nonGCB: { type: "result", entity: "DLBCL_nonGCB" },
+    result_HGBL_DH:   { type: "result", entity: "HGBL_DH"   },
+    result_BURKITT:   { type: "result", entity: "BURKITT"   },
+    result_PMBL:      { type: "result", entity: "PMBL"      },
+    result_THRLBCL:   { type: "result", entity: "THRLBCL"   },
+    result_MCL_BLAST: { type: "result", entity: "MCL_BLAST" },
+    result_MCL_PLEO:  { type: "result", entity: "MCL_PLEO"  },
+    result_HGBL_NOS:  { type: "result", entity: "HGBL_NOS"  },
+    result_HCL:       { type: "result", entity: "HCL"       },
+    result_LPL:       { type: "result", entity: "LPL"       }
+  }
+};
+
+// ======================== ENGINE — state machine (Task 4) ========================
+let state = {
+  currentNode: null,
+  differential: [],
+  history: [],
+  missing: [],
+  ambiguous: [],
+  conflicts: [],
+  markers: {},
+  caseTechFlags: { decalcified: false, post_treatment: false, inadequate_quality: false },
+  auditTrail: [],
+  lastMorphNode: null
+};
+
+function resetWizard() {
+  state = {
+    currentNode: TREE.start,
+    differential: [],
+    history: [],
+    missing: [],
+    ambiguous: [],
+    conflicts: [],
+    markers: {},
+    caseTechFlags: { decalcified: false, post_treatment: false, inadequate_quality: false },
+    auditTrail: [],
+    lastMorphNode: null
+  };
+  applyTechFlagsFromUI();
+  render();
+}
+
+function answer(optionIdx, mode) {
+  const node = TREE.nodes[state.currentNode];
+  if (!node || !node.options || !node.options[optionIdx]) return;
+  const option = node.options[optionIdx];
+
+  // Snapshot per back()
+  state.history.push({
+    nodeId: state.currentNode,
+    optionIdx,
+    mode,
+    differential: [...state.differential],
+    missing: [...state.missing],
+    ambiguous: [...state.ambiguous],
+    markers: { ...state.markers },
+    auditTrail: [...state.auditTrail]
+  });
+
+  // Audit trail
+  const answerLabel = mode === 'missing' ? '?' : mode === 'amb' ? '±' : option.label;
+  state.auditTrail.push({ q: node.question, a: answerLabel });
+
+  // Traccia lastMorphNode (nodi non-IHC)
+  if (node.type === 'choice' || node.type === 'info') {
+    state.lastMorphNode = state.currentNode;
+  }
+
+  // Gestione stati IHC — registra il valore reale del marcatore
+  if (node.type === 'ihc') {
+    if (mode === 'missing') {
+      state.missing.push(node.marker);
+      state.currentNode = option.next;
+      render();
+      return;
+    }
+    if (mode === 'amb') {
+      state.ambiguous.push(node.marker);
+      state.currentNode = option.next;
+      render();
+      return;
+    }
+    // pos / neg: memorizza il risultato per display e conflict detection
+    if (mode === 'pos') state.markers[node.marker] = '+';
+    else if (mode === 'neg') state.markers[node.marker] = '−';
+  }
+
+  // Inizializza differenziale se nodo lo specifica e non ancora inizializzato
+  if (node.differential && node.differential.length > 0 && state.differential.length === 0) {
+    state.differential = [...node.differential];
+    state.differential = state.differential.filter(e => !option.removes.includes(e));
+  } else if (option.removes && option.removes.length > 0 && state.differential.length > 0) {
+    state.differential = state.differential.filter(e => !option.removes.includes(e));
+  }
+
+  state.currentNode = option.next;
+  render();
+}
+
+function back() {
+  if (state.history.length === 0) return;
+  const prev = state.history.pop();
+  state.currentNode  = prev.nodeId;
+  state.differential = prev.differential;
+  state.missing      = prev.missing;
+  state.ambiguous    = prev.ambiguous;
+  state.markers      = prev.markers || {};
+  state.auditTrail   = prev.auditTrail;
+  render();
+}
+
+function rivalutaMorfologia() {
+  if (!state.lastMorphNode) { resetWizard(); return; }
+  state.currentNode  = state.lastMorphNode;
+  state.differential = [];
+  state.history      = [];
+  state.auditTrail   = [];
+  state.missing      = [];
+  state.ambiguous    = [];
+  state.markers      = {};
+  render();
+}
+
+function applyTechFlagsFromUI() {
+  state.caseTechFlags = {
+    decalcified:        document.getElementById('flag-decalcified')?.checked  || false,
+    post_treatment:     document.getElementById('flag-post-treatment')?.checked || false,
+    inadequate_quality: document.getElementById('flag-inadequate')?.checked    || false
+  };
+}
+
+function getTechWarning(marker) {
+  if (!marker) return null;
+  const warnings = [];
+  if (state.caseTechFlags.decalcified && ["BCL6","CD10","MYC IHC"].includes(marker)) {
+    warnings.push("Decalcificazione — verificare controllo interno");
+  }
+  if (state.caseTechFlags.post_treatment && marker === "CD20") {
+    warnings.push("Post-trattamento — CD20 può essere falsamente negativo");
+  }
+  if (MARKER_TECH_RISK[marker]) {
+    warnings.push(MARKER_TECH_RISK[marker]);
+  }
+  return warnings.length > 0 ? warnings.join(" · ") : null;
+}
+
+// Nome base del marcatore (rimuove qualificatori es. "MUM1 (<30%)" → "MUM1")
+function markerBase(m) {
+  return String(m).split('(')[0].replace(/[+−]/g, '').trim();
+}
+
+// Marcatori defining refertati con polarità discordante rispetto all'entità
+function definingConflicts(entity) {
+  const rec = {};
+  for (const [k, v] of Object.entries(state.markers || {})) rec[markerBase(k)] = v;
+  const out = [];
+  (entity.ihc_pos || []).forEach(m => {
+    if (rec[markerBase(m)] === '−') out.push(`${markerBase(m)} (atteso +, refertato −)`);
+  });
+  (entity.ihc_neg || []).forEach(m => {
+    if (rec[markerBase(m)] === '+') out.push(`${markerBase(m)} (atteso −, refertato +)`);
+  });
+  return out;
+}
+
+// ======================== ENGINE — computeRobustness (Task 5) ========================
+function computeRobustness(entityKey) {
+  if (state.caseTechFlags.inadequate_quality) return "Incompleto";
+  const entity = ENTITIES[entityKey];
+  if (!entity) return "Incompleto";
+
+  const classicoMarkers = entity.classico_markers || [];
+
+  // Conflitto su marcatore defining refertato con polarità discordante (es. MCL con BCL1−)
+  if (definingConflicts(entity).length > 0) return "Conflitto morfo-fenotipico";
+
+  // Conflitti su marcatori "strong" (legacy, da state.conflicts)
+  const strongConflicts = state.conflicts.filter(m =>
+    MARKER_WEIGHTS[m] === 'strong' && classicoMarkers.includes(m)
+  );
+  if (strongConflicts.length > 0) return "Conflitto morfo-fenotipico";
+
+  const missingClassico   = classicoMarkers.filter(m => state.missing.includes(m));
+  const ambiguousClassico = classicoMarkers.filter(m => state.ambiguous.includes(m));
+
+  if (missingClassico.length >= 2 || (missingClassico.length + ambiguousClassico.length) >= 2) {
+    return "Incompleto";
+  }
+  if (missingClassico.length === 1 || ambiguousClassico.length >= 1) {
+    return "Compatibile";
+  }
+
+  // Conflitti su marcatori "supportive"
+  const supportConflicts = state.conflicts.filter(m => MARKER_WEIGHTS[m] === 'supportive');
+  if (supportConflicts.length > 0) return "Compatibile";
+
+  return "Classico";
+}
+
+// ======================== UI — render (Task 6) ========================
+function render() {
+  const node = TREE.nodes[state.currentNode];
+  if (!node) return;
+
+  // Breadcrumb
+  const bc = document.getElementById('app-breadcrumb');
+  if (state.auditTrail.length > 0) {
+    bc.innerHTML = state.auditTrail.map(s =>
+      `<span>${escHtml(s.q)}: <strong>${escHtml(s.a)}</strong></span>`
+    ).join(' → ');
+  } else {
+    bc.innerHTML = '';
+  }
+
+  const left  = document.getElementById('app-left');
+  const right = document.getElementById('app-right');
+
+  if (node.type === 'result')      { renderResult(node.entity, left, right); return; }
+  if (node.type === 'result_note') { renderNoteScreen(node, left, right);    return; }
+
+  // Colonna sinistra — domanda
+  const techWarn   = node.type === 'ihc' ? getTechWarning(node.marker) : null;
+  const trapHtml   = node.trap
+    ? `<div class="app-trap">⚠ ${escHtml(node.trap)}</div>` : '';
+  const techWarnHtml = techWarn
+    ? `<div class="app-tech-warn">ℹ ${escHtml(techWarn)}</div>` : '';
+
+  // Step label
+  let stepLabel = 'Step';
+  if (node.type === 'ihc')    stepLabel = 'IHC — ' + (node.marker || '');
+  else if (node.type === 'choice') stepLabel = 'Morfologia / clinica';
+  else if (node.type === 'info')   stepLabel = 'Contestualizzazione';
+
+  // Pulsanti
+  let btnsHtml = '';
+  if (node.type === 'ihc') {
+    btnsHtml = `<div class="app-btns">
+      <button class="app-btn-pos"     onclick="answer(0,'pos')">+ Positivo</button>
+      <button class="app-btn-neg"     onclick="answer(1,'neg')">− Negativo</button>
+      <button class="app-btn-amb"     onclick="answer(0,'amb')">± Ambiguo</button>
+      <button class="app-btn-missing" onclick="answer(0,'missing')">? Non eseguito</button>
+    </div>`;
+  } else {
+    btnsHtml = '<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px">';
+    node.options.forEach((opt, i) => {
+      btnsHtml += `<button class="app-choice-btn" onclick="answer(${i},'pos')">${escHtml(opt.label)}</button>`;
+    });
+    btnsHtml += '</div>';
+  }
+
+  const backHtml  = state.history.length > 0
+    ? `<button class="app-back" onclick="back()">← Indietro</button>` : '';
+  const rivalHtml = `<button class="app-rival" onclick="rivalutaMorfologia()">⬆ Rivaluta morfologia</button>`;
+
+  left.innerHTML = `
+    <div class="app-step-label">${stepLabel}</div>
+    <div class="app-question">${escHtml(node.question)}</div>
+    ${node.note ? `<div class="app-question-note">${escHtml(node.note)}</div>` : ''}
+    ${btnsHtml}
+    ${techWarnHtml}
+    ${trapHtml}
+    <div class="app-nav-btns">${backHtml}${rivalHtml}</div>
+  `;
+
+  renderDifferential(right);
+}
+
+function renderDifferential(container) {
+  let html = `<div class="app-diff-label">Differenziale in corso</div>`;
+
+  if (state.missing.length > 0) {
+    html += `<div class="app-warn-missing">⚠ Differenziale con dati incompleti — ${state.missing.length} marcator${state.missing.length > 1 ? 'i' : 'e'} non eseguito/i: <strong>${state.missing.join(', ')}</strong></div>`;
+  }
+
+  if (state.differential.length === 0) {
+    html += `<div style="color:#999;font-size:0.82em;padding:8px 0">Il differenziale si definisce dopo il primo step di citologia</div>`;
+  } else {
+    // Recupera la lista completa (in + out) dal nodo che ha inizializzato il differenziale
+    let allEntities = [];
+    for (let i = state.history.length - 1; i >= 0; i--) {
+      const hn = TREE.nodes[state.history[i].nodeId];
+      if (hn && hn.differential && hn.differential.length > 0) {
+        allEntities = hn.differential;
+        break;
+      }
+    }
+    if (allEntities.length === 0) allEntities = state.differential;
+
+    allEntities.forEach(eKey => {
+      const entity  = ENTITIES[eKey];
+      const inPlay  = state.differential.includes(eKey);
+      const isAmb   = inPlay && state.ambiguous.length > 0;
+      const name    = entity ? entity.name : eKey;
+      if (inPlay) {
+        const cls = isAmb ? 'app-diff-amb' : 'app-diff-in';
+        const dot = isAmb ? '●?' : '●';
+        html += `<div class="app-diff-item ${cls}"><span>${dot}</span><span>${escHtml(name)}</span></div>`;
+      } else {
+        html += `<div class="app-diff-item app-diff-out"><span>✗</span><span>${escHtml(name)}</span></div>`;
+      }
+    });
+  }
+
+  container.innerHTML = html;
+}
+
+function renderNoteScreen(node, left, right) {
+  const optBtns = node.options.map((opt, i) =>
+    `<button class="app-choice-btn" onclick="answer(${i},'pos')">${escHtml(opt.label)}</button>`
+  ).join('');
+  const backHtml = state.history.length > 0
+    ? `<button class="app-back" onclick="back()">← Indietro</button>` : '';
+
+  left.innerHTML = `
+    <div class="app-question" style="color:#e65100">${escHtml(node.question)}</div>
+    <div class="app-question-note" style="line-height:1.7">${node.note}</div>
+    ${node.options.length > 0 ? `<div style="display:flex;flex-direction:column;gap:7px;margin:16px 0">${optBtns}</div>` : ''}
+    <div class="app-nav-btns">
+      ${backHtml}
+      <button class="app-btn-ctrl secondary" onclick="resetWizard()">↺ Ricomincia</button>
+    </div>
+  `;
+  right.innerHTML = `<div class="app-diff-label">—</div>`;
+}
+
+// ======================== UI — renderResult (Task 7) ========================
+function renderResult(entityKey, leftContainer, rightContainer) {
+  const entity = ENTITIES[entityKey];
+  if (!entity) {
+    leftContainer.innerHTML = `<div style="padding:20px;color:#b71c1c">Entità non trovata: ${escHtml(entityKey)}</div>`;
+    return;
+  }
+
+  const robustness  = computeRobustness(entityKey);
+  const badgeClass  = {
+    'Classico':               'app-badge-classico',
+    'Compatibile':            'app-badge-compatibile',
+    'Incompleto':             'app-badge-incompleto',
+    'Conflitto morfo-fenotipico': 'app-badge-conflitto'
+  }[robustness] || 'app-badge-incompleto';
+
+  const hgblBanner = entity.hgbl_banner ? `
+    <div class="app-hgbl-banner">
+      ⚠ <strong>Categoria residuale — diagnosi per esclusione.</strong><br>
+      Spesso indica campione subottimale, biologia incompleta, o caso borderline DLBCL/Burkitt.<br>
+      Rivalutare con workup completo prima di refertare.
+    </div>` : '';
+
+  const disclaimerHtml = entity.notes
+    ? `<div class="app-disclaimer">ℹ ${escHtml(entity.notes)}</div>` : '';
+
+  // IHC core: riflette i marcatori realmente refertati (override del canonico) e segnala discordanze
+  const recByBase = {};
+  for (const [k, v] of Object.entries(state.markers || {})) recByBase[markerBase(k)] = v;
+  const fmtPos = m => {
+    const rec = recByBase[markerBase(m)];
+    if (rec === '−') return `<span class="neg" title="atteso +, refertato −">${escHtml(m)}− ⚠</span>`;
+    if (rec === '+') return `<span class="pos">${escHtml(m)}+</span>`;
+    return `<span class="pos" style="opacity:.5" title="fenotipo canonico — non refertato">${escHtml(m)}+</span>`;
+  };
+  const fmtNeg = m => {
+    const rec = recByBase[markerBase(m)];
+    if (rec === '+') return `<span class="pos" title="atteso −, refertato +">${escHtml(m)}+ ⚠</span>`;
+    if (rec === '−') return `<span class="neg">${escHtml(m)}−</span>`;
+    return `<span class="neg" style="opacity:.5" title="fenotipo canonico — non refertato">${escHtml(m)}−</span>`;
+  };
+  const ihcHtml = [...entity.ihc_pos.map(fmtPos), ...entity.ihc_neg.map(fmtNeg)].join(' ');
+
+  const conflictsList = definingConflicts(entity);
+  const conflictBanner = conflictsList.length
+    ? `<div class="app-hgbl-banner" style="background:#ffebee;border-color:#c62828;color:#b71c1c">
+         ⚠ <strong>Conflitto morfo-fenotipico:</strong> ${conflictsList.map(escHtml).join(' · ')}.
+         La diagnosi mostrata NON è coerente con i marcatori refertati — rivalutare.
+       </div>` : '';
+
+  const l2coreHtml   = entity.l2core.map(item => `<li>${escHtml(item)}</li>`).join('');
+  const trapsHtml    = entity.traps.map(t  => `<div class="app-trap-result">⚠ ${escHtml(t)}</div>`).join('');
+  const badgeHtml    = `<span class="app-badge ${badgeClass}">Robustezza: ${robustness}</span>`;
+
+  // Referto plain-text (nomenclatura WHO-HAEM5, ed. 2024)
+  const SEP = '='.repeat(58);
+  const recordedMk = Object.entries(state.markers || {});
+  const dxName = entity.name.replace(/\s*\([^)]*\)\s*/g, ' ').trim(); // rimuove parentetiche (es. "(WHO-HAEM5)", "(Hans)")
+  // Taglia cellulare per la riga diagnostica (referto)
+  const TAGLIA = {
+    FL: 'piccola e media taglia', FLBCL: 'grande taglia', MCL: 'piccola e media taglia',
+    NLPBL: 'grande taglia', MZL: 'piccola e media taglia', CLL: 'piccola taglia',
+    DLBCL: 'grande taglia', DLBCL_GCB: 'grande taglia', DLBCL_nonGCB: 'grande taglia',
+    HGBL_DH: 'grande taglia', BURKITT: 'media taglia', PMBL: 'grande taglia',
+    THRLBCL: 'grande taglia', MCL_BLAST: 'taglia medio-grande', MCL_PLEO: 'grande taglia',
+    HGBL_NOS: 'taglia medio-grande / blastoide', HCL: 'media taglia', LPL: 'piccola taglia'
+  };
+  const taglia = TAGLIA[entityKey] || 'taglia non specificata';
+  // Morfologia per il referto: prefisso di taglia (da TAGLIA) + citologia senza l'aggettivo di taglia ridondante
+  let cyto = entity.morphology
+    .replace(/^(Piccole-miste|Piccole-medie|Piccole|Grandi|Medie|Blastoid\/intermedia)\s*,?\s*/i, '')
+    .replace(/^[\s,+—-]+/, '');
+  cyto = cyto.charAt(0).toUpperCase() + cyto.slice(1);
+  const morfoLine = `cellule di ${taglia}. ${cyto}`;
+  // Riga diagnostica in forma referto. NLPBL: in WHO-HAEM5 è linfoma di Hodgkin (B-NHL solo per ICC 2022)
+  const dxLine = (entityKey === 'NLPBL')
+    ? `Linfoma a predominanza linfocitaria nodulare (${dxName}), sec. WHO-HAEM5 (5ª ed., 2024) — classificato tra i linfomi di Hodgkin a fenotipo B; ICC 2022: linfoma a cellule B.`
+    : `Linfoma non-Hodgkin a cellule B: ${dxName}, sec. WHO-HAEM5 (5ª ed., 2024).`;
+  // Immunofenotipo compatto dai marcatori realmente refertati: positivi; negativi
+  const posMk = recordedMk.filter(([, v]) => v === '+').map(([k]) => `${k}+`);
+  const negMk = recordedMk.filter(([, v]) => v === '−').map(([k]) => `${k}−`);
+  const ipLine = recordedMk.length
+    ? [posMk.join(', '), negMk.join(', ')].filter(Boolean).join('; ')
+    : 'non disponibile in questo percorso';
+  // Note classificatorie WHO che vanno DOPO la riga diagnostica
+  const WHO_NOTE = {
+    FL: 'Grading 1–3A non richiesto come categoria obbligatoria (WHO-HAEM5).'
+  };
+  const refLines = [
+    'REFERTO — Algoritmo diagnostico LNH B',
+    SEP,
+    `Pattern / morfologia: ${morfoLine}`,
+    '',
+    dxLine
+  ];
+  if (WHO_NOTE[entityKey]) refLines.push(WHO_NOTE[entityKey]);
+  refLines.push('', `Immunofenotipo: ${ipLine}.`);
+  if (state.missing.length)   refLines.push(`Marcatori non eseguiti: ${state.missing.join(', ')}.`);
+  if (state.ambiguous.length) refLines.push(`Marcatori ambigui: ${state.ambiguous.join(', ')}.`);
+  refLines.push('', '-'.repeat(58),
+    'Strumento di supporto decisionale — non sostituisce il giudizio diagnostico integrato (morfologia + clinica + accertamenti).');
+  const refertoText = refLines.join('\n');
+  const refertoHtml = `
+    <details style="margin-top:14px">
+      <summary style="cursor:pointer;font-weight:600;color:#1a237e">📄 Genera referto (plain text)</summary>
+      <textarea id="app-referto" readonly style="width:100%;height:230px;margin-top:8px;font-family:ui-monospace,Menlo,monospace;font-size:0.76em;line-height:1.5;border:1px solid #c5cae9;border-radius:6px;padding:8px;resize:vertical">${escHtml(refertoText)}</textarea>
+      <button class="app-btn-ctrl" style="margin-top:6px" onclick="copyReferto()">📋 Copia negli appunti</button>
+      <span id="app-referto-fb" style="margin-left:10px;font-size:0.8em;color:#1b5e20"></span>
+    </details>`;
+
+  leftContainer.innerHTML = `
+    ${hgblBanner}
+    ${conflictBanner}
+    <div style="padding-bottom:12px">
+      <div class="app-result-label">Diagnosi di lavoro</div>
+      <div class="app-result-name">${escHtml(entity.name)}</div>
+      ${badgeHtml}
+    </div>
+    <div class="app-result-section"><strong>Morfologia:</strong> ${escHtml(entity.morphology)}</div>
+    <div class="app-result-section"><strong>IHC core:</strong> ${ihcHtml}</div>
+    <div class="app-l2core">
+      <strong style="color:#4a148c">Conferma (Livello 2) — richiedi:</strong>
+      <ul>${l2coreHtml}</ul>
+    </div>
+    ${entity.l2opt.length > 0
+      ? `<div class="app-l2opt"><strong>Livello 2 opzionale:</strong> ${escHtml(entity.l2opt.join(' · '))}</div>`
+      : ''}
+    ${trapsHtml}
+    ${disclaimerHtml}
+    ${refertoHtml}
+    <div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      ${state.history.length > 0 ? `<button class="app-back" onclick="back()">← Indietro</button>` : ''}
+      <button class="app-btn-ctrl" onclick="resetWizard()">↺ Nuova analisi</button>
+    </div>
+  `;
+
+  // Colonna destra: percorso diagnostico
+  const auditHtml = state.auditTrail.map(s =>
+    `${escHtml(s.q)}<br><strong style="color:#1a237e">→ ${escHtml(s.a)}</strong>`
+  ).join('<br>');
+
+  const missingNote = state.missing.length > 0
+    ? `<div style="margin-top:12px;font-size:0.78em;color:#e65100">⚠ Marcatori non eseguiti: ${escHtml(state.missing.join(', '))}</div>` : '';
+  const ambNote = state.ambiguous.length > 0
+    ? `<div style="font-size:0.78em;color:#795548;margin-top:4px">± Ambigui: ${escHtml(state.ambiguous.join(', '))}</div>` : '';
+
+  rightContainer.innerHTML = `
+    <div class="app-diff-label">Percorso diagnostico</div>
+    <div class="app-audit">${auditHtml}</div>
+    ${missingNote}
+    ${ambNote}
+  `;
+}
+
+// ======================== UI — referto ========================
+function copyReferto() {
+  const ta = document.getElementById('app-referto');
+  const fb = document.getElementById('app-referto-fb');
+  if (!ta) return;
+  ta.focus(); ta.select();
+  const done = () => { if (fb) { fb.textContent = '✓ Copiato'; setTimeout(() => { fb.textContent = ''; }, 2000); } };
+  const fail = () => { if (fb) fb.textContent = 'Copia manuale (Cmd/Ctrl+C)'; };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(ta.value).then(done).catch(() => {
+      try { document.execCommand('copy'); done(); } catch (e) { fail(); }
+    });
+  } else {
+    try { document.execCommand('copy'); done(); } catch (e) { fail(); }
+  }
+}
+
+// ======================== UI — toggles (Task 8) ========================
+
+function togglePrintMode() {
+  const wizard = document.getElementById('app-wizard');
+  const print  = document.getElementById('app-print-section');
+  const wizardVisible = wizard.style.display !== 'none';
+  wizard.style.display = wizardVisible ? 'none'  : '';
+  print.style.display  = wizardVisible ? 'block' : 'none';
+}
+
+// ======================== UTILITIES ========================
+function escHtml(str) {
+  if (typeof str !== 'string') return str || '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ======================== PANEL MODE ========================
+
+let panelMode  = false;
+let panelState = { step: 'topo', topo: null, morph: null, markers: {} };
+
+const PANEL_MARKERS = {
+  small: [
+    { key: 'CD20',  label: 'CD20'   },
+    { key: 'CD79a', label: 'CD79a'  },
+    { key: 'CD5',   label: 'CD5'    },
+    { key: 'CD10',  label: 'CD10'   },
+    { key: 'CD23',  label: 'CD23'   },
+    { key: 'BCL1',  label: 'BCL1 / CycD1' },
+    { key: 'BCL2',  label: 'BCL2'   },
+    { key: 'BCL6',  label: 'BCL6'   },
+    { key: 'SOX11', label: 'SOX11'  },
+    { key: 'Ki67',  label: 'Ki67', quantitative: true, note: '%' }
+  ],
+  large: [
+    { key: 'CD20',  label: 'CD20'   },
+    { key: 'CD5',   label: 'CD5'    },
+    { key: 'BCL1',  label: 'BCL1 / CycD1' },
+    { key: 'SOX11', label: 'SOX11'  },
+    { key: 'BCL2',  label: 'BCL2 IHC', note: '≥50%' },
+    { key: 'CD10',  label: 'CD10'   },
+    { key: 'BCL6',  label: 'BCL6'   },
+    { key: 'MUM1',  label: 'MUM1 / IRF4' },
+    { key: 'MYC',   label: 'MYC IHC', note: '≥40%' },
+    { key: 'Ki67',  label: 'Ki67', quantitative: true, note: '%' }
+  ]
+};
+
+// Asse milza/sangue/BM: marker HCL-specifici mostrati solo qui (STEP 0 topografico)
+const TOPO_SPLEEN = 'Milza / sangue / BM';
+const HCL_MARKERS = [
+  { key: 'AnnexinA1', label: 'Annessina A1' },
+  { key: 'CD103',     label: 'CD103'  },
+  { key: 'CD25',      label: 'CD25'   },
+  { key: 'CD11c',     label: 'CD11c'  }
+];
+
+const PANEL_RULES = {
+  small: [
+    { id:'MCL',        name:'MCL classico (BCL1+)',
+      required_pos:['BCL1'], required_neg:[], required_any:null,
+      expected_pos:['CD5','BCL2','SOX11'], expected_neg:['CD10','CD23','BCL6'], base:8 },
+    { id:'MCL_nn',     name:'MCL CycD1-negativo (SOX11+)',
+      required_pos:['SOX11'], required_neg:['BCL1'], required_any:null,
+      expected_pos:['CD5'], expected_neg:['CD10','CD23','BCL6'], base:6 },
+    { id:'CLL',        name:'CLL / SLL',
+      required_pos:['CD5','CD23'], required_neg:['BCL1'], required_any:null,
+      expected_pos:['BCL2'], expected_neg:['SOX11','CD10','BCL6'], base:7 },
+    { id:'FL',         name:'Linfoma Follicolare',
+      required_pos:[], required_neg:[], required_any:['CD10','BCL6'],
+      exclusion_pos:['CD5','BCL1'],
+      expected_pos:['BCL2','CD20'], expected_neg:['CD5','BCL1','SOX11'], base:7 },
+    { id:'MZL',        name:'MZL / Linfoma Marginale',
+      required_pos:[], required_neg:[], required_any:null,
+      exclusion_pos:['BCL1','SOX11','CD10'],
+      expected_pos:['CD20'], expected_neg:['CD5','CD23','BCL1','CD10','SOX11','BCL6'], base:4 },
+    { id:'LPL',        name:'LPL / Waldenström',
+      required_pos:[], required_neg:[], required_any:null,
+      exclusion_pos:['BCL1','CD10','SOX11','CD5'],
+      expected_pos:['CD20'], expected_neg:['CD5','BCL1','CD10','CD23','SOX11'], base:3 },
+    { id:'HCL',        name:'HCL (tricoileucemia)', topo:'spleen',
+      required_pos:['AnnexinA1'], required_neg:[], required_any:null,
+      expected_pos:['CD103','CD25','CD11c','CD20'], expected_neg:['CD5','CD10','BCL1'], base:5 }
+  ],
+  large: [
+    { id:'DLBCL_GCB',  name:'DLBCL NOS — GCB (Hans)',
+      required_pos:[], required_neg:['BCL1'], required_any:null, hans:'gcb',
+      expected_pos:['CD20','BCL6'], expected_neg:['BCL1'], base:6 },
+    { id:'DLBCL_nGCB', name:'DLBCL NOS — non-GCB (Hans)',
+      required_pos:[], required_neg:['BCL1'], required_any:null, hans:'nongcb',
+      expected_pos:['CD20','MUM1'], expected_neg:['BCL1'], base:6 },
+    { id:'MCL_blast',  name:'MCL blastoide / pleomorfo',
+      required_pos:['BCL1'], required_neg:[], required_any:null,
+      expected_pos:['CD5','SOX11'], expected_neg:['CD10','CD23'], base:8 },
+    { id:'HGBL',       name:'HGBL-NOS / Burkitt (da escludere)',
+      required_pos:[], required_neg:['BCL1'], required_any:null, ki67_threshold:80,
+      expected_pos:['CD10','BCL6'], expected_neg:['BCL2','BCL1'], base:3 }
+  ]
+};
+
+// Hans COO helper
+function hansAlgorithm(markers) {
+  const cd10 = markers.CD10, bcl6 = markers.BCL6, mum1 = markers.MUM1;
+  if (cd10 === '+') return 'gcb';
+  if (cd10 === '-') {
+    if (bcl6 === '+' && mum1 === '-') return 'gcb';
+    if (bcl6 === '+' && mum1 === '+') return 'nongcb';
+    if (bcl6 === '-')                 return 'nongcb';
+    if (bcl6 === '+' && !mum1)        return null; // MUM1 missing
+  }
+  return null; // indeterminate
+}
+
+function computePanelDiagnosis(markers, morph, topo) {
+  const rules   = PANEL_RULES[morph] || [];
+  const ki67val = parseInt(markers.Ki67 || '0', 10);
+  const out     = [];
+
+  for (const rule of rules) {
+    // Vincolo topografico: regole spleen-only solo sotto asse milza/sangue/BM
+    if (rule.topo === 'spleen' && topo !== TOPO_SPLEEN) continue;
+    let excluded = false, exR = [], conflicts = [], matched = [], missing = [];
+    let score = rule.base;
+
+    // required_pos
+    for (const m of (rule.required_pos || [])) {
+      const v = markers[m];
+      if (v === '-') { excluded = true; exR.push(m + '−'); }
+      else if (v === '+') { score += 4; matched.push(m + '+'); }
+      else { missing.push(m); score -= 1; }
+    }
+    // required_neg
+    for (const m of (rule.required_neg || [])) {
+      const v = markers[m];
+      if (v === '+') { excluded = true; exR.push(m + '+'); }
+      else if (v === '-') { score += 2; matched.push(m + '−'); }
+      else missing.push(m);
+    }
+    // required_any
+    if (rule.required_any) {
+      const anyPos  = rule.required_any.some(m => markers[m] === '+');
+      const allNeg  = rule.required_any.every(m => markers[m] === '-');
+      if (allNeg) { excluded = true; exR.push('(' + rule.required_any.join('/') + ')−'); }
+      else if (anyPos) { score += 4; matched.push(rule.required_any.find(m => markers[m] === '+') + '+'); }
+      else rule.required_any.forEach(m => { if (!markers[m]) missing.push(m); });
+    }
+    // exclusion_pos (soft exclusion: if any listed is +, penalise heavily)
+    if (!excluded && rule.exclusion_pos) {
+      const posM = rule.exclusion_pos.find(m => markers[m] === '+');
+      if (posM) { score -= 10; conflicts.push(posM + '+'); }
+    }
+
+    // Hans algorithm
+    if (!excluded && rule.hans) {
+      const hans = hansAlgorithm(markers);
+      const cd10 = markers.CD10, bcl6 = markers.BCL6, mum1 = markers.MUM1;
+      if (rule.hans === 'gcb') {
+        if (hans === 'gcb') {
+          score += 8;
+          matched.push(markers.CD10 === '+' ? 'CD10+ → GCB' : 'BCL6+ MUM1− → GCB');
+        } else if (hans === 'nongcb') {
+          excluded = true; exR.push('Hans → non-GCB');
+        } else {
+          if (!cd10) missing.push('CD10');
+          if (!bcl6) missing.push('BCL6');
+          if (!mum1 && cd10 !== '+') missing.push('MUM1');
+          score += 2;
+        }
+      } else { // nongcb
+        if (hans === 'nongcb') {
+          score += 8;
+          matched.push(markers.MUM1 === '+' ? 'CD10− MUM1+ → non-GCB' : 'CD10− BCL6− → non-GCB');
+        } else if (hans === 'gcb') {
+          excluded = true; exR.push('Hans → GCB');
+        } else {
+          if (!cd10) missing.push('CD10');
+          if (!bcl6) missing.push('BCL6');
+          if (!mum1 && cd10 !== '+') missing.push('MUM1');
+          score += 2;
+        }
+      }
+    }
+
+    // Ki67 threshold
+    if (!excluded && rule.ki67_threshold) {
+      if (ki67val >= rule.ki67_threshold) { score += 5; matched.push('Ki67 ' + ki67val + '%'); }
+      else if (ki67val > 0) score -= 2;
+      else missing.push('Ki67');
+    }
+
+    if (!excluded) {
+      for (const m of (rule.expected_pos || [])) {
+        const v = markers[m];
+        if (v === '+') { score += 2; matched.push(m + '+'); }
+        else if (v === '-') score -= 1;
+        else missing.push(m);
+      }
+      for (const m of (rule.expected_neg || [])) {
+        const v = markers[m];
+        if (v === '-') { score += 1; matched.push(m + '−'); }
+        else if (v === '+') { score -= 2; conflicts.push(m + '+'); }
+      }
+    }
+
+    // Deduplicate missing — remove markers already in matched
+    const matchedKeys = matched.map(t => t.split(/[+−]/)[0].trim());
+    const missingUniq = [...new Set(missing)].filter(m => !matchedKeys.includes(m));
+
+    out.push({
+      id: rule.id, name: rule.name,
+      entityKey: rule.id === 'DLBCL_GCB'  ? 'DLBCL_GCB'
+               : rule.id === 'DLBCL_nGCB' ? 'DLBCL_nonGCB'
+               : rule.id === 'HGBL'        ? 'HGBL_NOS'
+               : rule.id.startsWith('MCL') ? 'MCL'
+               : rule.id === 'FL'          ? 'FL'
+               : rule.id === 'HCL'         ? 'HCL'
+               : rule.id === 'CLL'         ? 'CLL'
+               : rule.id === 'MZL'         ? 'MZL'
+               : rule.id === 'LPL'         ? 'LPL'
+               : null,
+      score: excluded ? -999 : score,
+      excluded, excludeReasons: exR, conflicts, matched, missing: missingUniq
+    });
+  }
+
+  out.sort((a, b) => b.score - a.score);
+
+  // Flags
+  const flags = [];
+  if (morph === 'large') {
+    if (markers.MYC === '+' && markers.BCL2 === '+')
+      flags.push({ type: 'de',
+        text: '⚠ Double Expressor (MYC+ BCL2+) — richiedere FISH MYC + BCL2 + BCL6 per escludere HGBL-DH/TH prima di refertare DLBCL.' });
+    if (ki67val >= 95)
+      flags.push({ type: 'hgbl',
+        text: `⚠ Ki67 ${ki67val}%: range Burkitt (WHO-HAEM5 Ki67 ~100%). Escludere t(8;14) con FISH prima di concludere DLBCL/HGBL.` });
+  }
+  if (morph === 'small' && ki67val > 30)
+    flags.push({ type: 'ki67s',
+      text: `⚠ Ki67 ${ki67val}% in morfologia piccole cellule: inatteso per linfomi indolenti. Escludere MCL blastoide e trasformazione Richter.` });
+
+  return { results: out, flags };
+}
+
+// -------- Panel render helpers --------
+
+function switchMode(mode) {
+  panelMode = (mode === 'panel');
+  document.getElementById('pnl-tab-guided').classList.toggle('active', !panelMode);
+  document.getElementById('pnl-tab-panel').classList.toggle('active',   panelMode);
+  if (panelMode) renderPanelMode(); else render();
+}
+
+function resetAll() {
+  if (panelMode) resetPanel(); else resetWizard();
+}
+
+function resetPanel() {
+  panelState = { step: 'topo', topo: null, morph: null, markers: {} };
+  renderPanelMode();
+}
+
+function renderPanelMode() {
+  const left = document.getElementById('app-left');
+  const right = document.getElementById('app-right');
+  const bc   = document.getElementById('app-breadcrumb');
+  bc.innerHTML = panelState.morph
+    ? `Topografia: <strong>${escHtml(panelState.topo||'')}</strong> → Morfologia: <strong>${panelState.morph === 'small' ? 'Piccole cellule' : 'Grandi cellule'}</strong>`
+    : '';
+  if      (panelState.step === 'topo')   renderPanelTopo(left, right);
+  else if (panelState.step === 'morph')  renderPanelMorph(left, right);
+  else if (panelState.step === 'panel')  renderPanelInput(left, right);
+  else if (panelState.step === 'result') renderPanelResult(left, right);
+}
+
+function renderPanelTopo(left, right) {
+  const topos = [
+    'Linfonodo',
+    'Milza / sangue / BM',
+    'Extranodale (MALT, SNC, cute…)',
+    'Non specificato'
+  ];
+  const btns = topos.map(t =>
+    `<button class="pnl-topo-btn${panelState.topo === t ? ' selected' : ''}"
+       onclick="panelState.topo='${t.replace(/'/g,'\\\'')
+         }';panelState.step='morph';renderPanelMode()">${escHtml(t)}</button>`
+  ).join('');
+  left.innerHTML = `
+    <div class="pnl-wrap">
+      <div class="pnl-title">Step 1 — Sede</div>
+      <div class="pnl-sub">Indica la sede della biopsia — orienta la probabilità a priori (es. SMZL su milza, MALT extranodale).</div>
+      <div class="pnl-topo-grid">${btns}</div>
+    </div>`;
+  right.innerHTML = `<div class="pnl-right-title">Panel IHC</div><div style="color:#999;font-size:0.82em">Seleziona sede → morfologia → panel.</div>`;
+}
+
+function renderPanelMorph(left, right) {
+  left.innerHTML = `
+    <div class="pnl-wrap">
+      <div class="pnl-title">Step 2 — Morfologia dominante</div>
+      <div class="pnl-sub">Dimensione cellulare prevalente alla colorazione H&amp;E.</div>
+      <div class="pnl-morph-grid">
+        <button class="pnl-morph-btn${panelState.morph === 'small' ? ' selected' : ''}"
+          onclick="panelState.morph='small';panelState.markers={};panelState.step='panel';renderPanelMode()">
+          <strong>Piccole cellule</strong>
+          <small>Linfociti, centrociti, cellule del mantello</small>
+        </button>
+        <button class="pnl-morph-btn${panelState.morph === 'large' ? ' selected' : ''}"
+          onclick="panelState.morph='large';panelState.markers={};panelState.step='panel';renderPanelMode()">
+          <strong>Grandi cellule</strong>
+          <small>Centroblasti, immunoblasti, cellule anaplastiche</small>
+        </button>
+      </div>
+      <button class="app-back" onclick="panelState.step='topo';renderPanelMode()">← Indietro</button>
+    </div>`;
+  right.innerHTML = `<div class="pnl-right-title">Panel IHC</div><div style="color:#999;font-size:0.82em">Seleziona la morfologia per vedere il panel.</div>`;
+}
+
+// Lista marcatori per la sede corrente (aggiunge marker HCL su asse milza/sangue/BM)
+function panelMarkerList() {
+  let mks = PANEL_MARKERS[panelState.morph] || [];
+  if (panelState.morph === 'small' && panelState.topo === TOPO_SPLEEN)
+    mks = mks.concat(HCL_MARKERS);
+  return mks;
+}
+
+function setPanelMarker(key, val) {
+  panelState.markers[key] = panelState.markers[key] === val ? '' : val;
+  renderPanelInput(document.getElementById('app-left'), document.getElementById('app-right'));
+}
+
+function renderPanelInput(left, right) {
+  const mks = panelMarkerList();
+  const m   = panelState.markers;
+  let grid  = '<div class="pnl-grid">';
+
+  for (const mk of mks) {
+    const v = m[mk.key] || '';
+    let cardCls = 'pnl-card';
+    if (v === '+') cardCls += ' done-pos';
+    else if (v === '-') cardCls += ' done-neg';
+    else if (v === '?') cardCls += ' done-unk';
+
+    if (mk.quantitative) {
+      grid += `
+        <div class="${cardCls}">
+          <div class="pnl-card-name">${escHtml(mk.label)}</div>
+          ${mk.note ? `<div class="pnl-card-note">${escHtml(mk.note)}</div>` : ''}
+          <div class="pnl-ki67-row">
+            <input class="pnl-ki67-in" type="number" min="0" max="100" placeholder="%" value="${escHtml(v)}"
+              oninput="panelState.markers['${mk.key}']=this.value"
+              onchange="renderPanelInput(document.getElementById('app-left'),document.getElementById('app-right'))">
+            <span style="font-size:0.75em;color:#888">%</span>
+          </div>
+        </div>`;
+    } else {
+      const btn = (cls, sym, vv) =>
+        `<button class="pnl-cb ${cls}${v === vv ? ' on' : ''}"
+           onclick="setPanelMarker('${mk.key}','${vv}')">${sym}</button>`;
+      grid += `
+        <div class="${cardCls}">
+          <div class="pnl-card-name">${escHtml(mk.label)}</div>
+          ${mk.note ? `<div class="pnl-card-note">${escHtml(mk.note)}</div>` : ''}
+          <div class="pnl-card-btns">
+            ${btn('pnl-cb-pos','+','+')}
+            ${btn('pnl-cb-neg','−','-')}
+            ${btn('pnl-cb-unk','?','?')}
+          </div>
+        </div>`;
+    }
+  }
+  grid += '</div>';
+
+  const done = Object.values(m).filter(v => v && v !== '').length;
+  const ok   = done >= 3;
+
+  left.innerHTML = `
+    <div class="pnl-wrap">
+      <div class="pnl-title">Step 3 — Panel IHC</div>
+      <div class="pnl-sub">${panelState.morph === 'small' ? 'Piccole cellule' : 'Grandi cellule'} · ${escHtml(panelState.topo||'')}</div>
+      ${grid}
+      <button class="pnl-calc" ${ok ? '' : 'disabled'}
+        onclick="${ok ? "panelState.step='result';renderPanelMode()" : ''}">Calcola diagnosi →</button>
+      ${!ok ? `<div style="font-size:0.75em;color:#888;margin-top:6px">Inserisci almeno 3 marcatori.</div>` : ''}
+      <div style="margin-top:12px">
+        <button class="app-back" onclick="panelState.step='morph';renderPanelMode()">← Indietro</button>
+      </div>
+    </div>`;
+  right.innerHTML = buildPanelSummary();
+}
+
+function buildPanelSummary() {
+  const m   = panelState.markers;
+  const mks = panelMarkerList();
+  let html  = '<div class="pnl-right-title">Marcatori inseriti</div><div class="pnl-right-summary">';
+  let any   = false;
+  for (const mk of mks) {
+    const v = m[mk.key];
+    if (!v) continue;
+    any = true;
+    if (mk.quantitative) {
+      html += `<span style="color:#555">${escHtml(mk.label)}: <strong>${escHtml(v)}%</strong></span><br>`;
+    } else {
+      const col = v === '+' ? '#1b5e20' : v === '-' ? '#c62828' : '#888';
+      const sym = v === '+' ? '+' : v === '-' ? '−' : '?';
+      html += `<span style="color:${col}"><strong>${escHtml(mk.label)} ${sym}</strong></span><br>`;
+    }
+  }
+  if (!any) html += '<span style="color:#999">—</span>';
+  return html + '</div>';
+}
+
+function renderPanelResult(left, right) {
+  const { results, flags } = computePanelDiagnosis(panelState.markers, panelState.morph, panelState.topo);
+
+  let flagHtml = '';
+  for (const f of flags) {
+    const cls = f.type === 'hgbl' ? 'pnl-flag-hgbl' : 'pnl-flag-de';
+    flagHtml += `<div class="${cls}">${escHtml(f.text)}</div>`;
+  }
+
+  const active   = results.filter(r => !r.excluded);
+  const excluded = results.filter(r =>  r.excluded);
+  const rankCls  = ['pnl-res-1','pnl-res-2','pnl-res-3'];
+  const rankPfx  = ['① ','② ','③ '];
+
+  let resHtml = '';
+  active.forEach((r, i) => {
+    const entity = r.entityKey ? ENTITIES[r.entityKey] : null;
+    let tags = '';
+    r.matched.forEach(t  => { tags += `<span class="pnl-tag pnl-tag-ok">${escHtml(t)}</span>`; });
+    r.conflicts.forEach(t => { tags += `<span class="pnl-tag pnl-tag-ko">⚠ ${escHtml(t)}</span>`; });
+    if (r.missing.length)  { tags += `<span class="pnl-tag pnl-tag-mis">? ${escHtml(r.missing.slice(0,3).join(', '))}</span>`; }
+    const l2 = entity && entity.l2core.length
+      ? `<div style="font-size:0.75em;color:#4a148c;line-height:1.7;margin-top:4px">
+           <strong>Conferma:</strong> ${escHtml(entity.l2core.slice(0,2).join(' · '))}
+         </div>`
+      : '';
+    resHtml += `
+      <div class="pnl-res-entity ${rankCls[i] || 'pnl-res-3'}">
+        <div class="pnl-res-name">${rankPfx[i] || ''}${escHtml(r.name)}</div>
+        <div class="pnl-res-tags">${tags}</div>
+        ${l2}
+      </div>`;
+  });
+
+  if (excluded.length) {
+    resHtml += `<div style="font-size:0.75em;color:#888;margin:8px 0 4px">Escluse dal pattern:</div>`;
+    excluded.forEach(r => {
+      resHtml += `<div class="pnl-res-entity pnl-res-x">
+        <div style="font-size:0.82em;font-weight:600">${escHtml(r.name)}</div>
+        <div style="font-size:0.7em">${r.excludeReasons.map(escHtml).join(' · ')}</div>
+      </div>`;
+    });
+  }
+
+  const missingAll = [...new Set(active.flatMap(r => r.missing))].slice(0,5);
+  const suggestHtml = missingAll.length
+    ? `<div class="pnl-suggest"><strong>Marcatori non inseriti che potrebbero discriminare:</strong> ${escHtml(missingAll.join(' · '))}</div>`
+    : '';
+
+  // Entità architettura/contesto-dipendenti: non risolvibili da un panel su fenotipo tumorale
+  const wizardNote = panelState.morph === 'large'
+    ? `<div class="pnl-suggest" style="border-left-color:#7e3af2;background:#f5f0ff;color:#4a148c">
+         <strong>Il Panel non valuta architettura né background.</strong> Entità che dipendono da questi
+         — Follicular large B-cell (ex-3B), PMBL, NLPBL, THRLBCL — non sono separabili dal solo fenotipo:
+         usa il percorso guidato.
+         <div style="margin-top:8px"><button class="app-btn-ctrl" onclick="switchMode('guided')">→ Apri percorso guidato</button></div>
+       </div>`
+    : '';
+
+  const done = Object.values(panelState.markers).filter(v => v && v !== '').length;
+  left.innerHTML = `
+    <div class="pnl-wrap">
+      <div class="pnl-title">Differenziale calcolato</div>
+      <div class="pnl-sub">${panelState.morph === 'small' ? 'Piccole cellule' : 'Grandi cellule'} · ${escHtml(panelState.topo||'')} · ${done} marcatori</div>
+      ${flagHtml}
+      ${resHtml}
+      ${suggestHtml}
+      ${wizardNote}
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="app-back" onclick="panelState.step='panel';renderPanelMode()">← Modifica panel</button>
+        <button class="app-btn-ctrl" onclick="resetPanel()">↺ Nuovo panel</button>
+      </div>
+    </div>`;
+  right.innerHTML = buildPanelSummary();
+}
+
+// ======================== SELF-CHECK — validazione TREE (Task 8) ========================
+// Verifica integrità strutturale al load: next pendenti, entità inesistenti, nodi orfani.
+function validateTree() {
+  const problems = [];
+  const nodes = TREE.nodes || {};
+  const ids = Object.keys(nodes);
+  const referenced = new Set([TREE.start]);
+
+  for (const id of ids) {
+    const node = nodes[id];
+    // result → entità deve esistere
+    if (node.type === 'result') {
+      if (!node.entity || !ENTITIES[node.entity])
+        problems.push(`Nodo '${id}': result punta a entità inesistente '${node.entity}'`);
+    }
+    // ogni option.next deve esistere
+    (node.options || []).forEach((opt, i) => {
+      if (opt.next === undefined || opt.next === null) {
+        problems.push(`Nodo '${id}' opzione ${i} ('${opt.label}'): manca 'next'`);
+        return;
+      }
+      referenced.add(opt.next);
+      if (!nodes[opt.next])
+        problems.push(`Nodo '${id}' opzione ${i} ('${opt.label}'): next '${opt.next}' non esiste`);
+      // 'removes' deve elencare entità note
+      (opt.removes || []).forEach(e => {
+        if (!ENTITIES[e]) problems.push(`Nodo '${id}' opzione ${i}: removes entità ignota '${e}'`);
+      });
+    });
+    // differential deve elencare entità note
+    (node.differential || []).forEach(e => {
+      if (!ENTITIES[e]) problems.push(`Nodo '${id}': differential entità ignota '${e}'`);
+    });
+  }
+
+  // start deve esistere
+  if (!nodes[TREE.start]) problems.push(`TREE.start '${TREE.start}' non esiste`);
+
+  // nodi orfani (mai referenziati da un next e diversi da start)
+  for (const id of ids) {
+    if (!referenced.has(id)) problems.push(`Nodo '${id}': ORFANO (nessun next vi punta)`);
+  }
+
+  return problems;
+}
+
+function runSelfCheck() {
+  const problems = validateTree();
+  if (problems.length === 0) {
+    console.info('✓ Self-check TREE: nessun problema strutturale.');
+    return;
+  }
+  console.error('✗ Self-check TREE — problemi rilevati:\n' + problems.map(p => ' • ' + p).join('\n'));
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#b71c1c;color:#fff;' +
+    'padding:8px 14px;font:13px/1.5 system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+  banner.innerHTML = '⚠ <strong>Self-check TREE: ' + problems.length + ' problema/i strutturale/i</strong> ' +
+    '(dettagli in console). ' + problems.map(p => p.replace(/</g, '&lt;')).join(' · ');
+  document.body.appendChild(banner);
+}
+
+// ======================== INIT ========================
+document.addEventListener('DOMContentLoaded', () => { runSelfCheck(); resetWizard(); });
+</script>
+</body>
+</html>
