@@ -1004,12 +1004,12 @@ const TREE = {
       marker: "Ki67",
       note: "Orienta l'aggressività biologica prima dell'IHC specifica.",
       options: [
-        { label: "+  (>20–25%)", removes: [], next: "nod_cd5" },
-        { label: "−  (≤20%)",    removes: [], next: "nod_cd5" },
-        { label: "?",            removes: [], next: "nod_cd5" }
+        { label: "<30% (atteso indolente)",                                       removes: [], next: "nod_cd5" },
+        { label: "≥30% (red flag: blastoide / trasformazione / fase accelerata)", removes: [], next: "nod_cd5" },
+        { label: "? Non eseguito",                                                removes: [], next: "nod_cd5" }
       ],
       differential: null,
-      trap: "Ki67 >20–25% in nodulare piccole cellule: inusuale per linfoma indolente — escludere HGBL su pattern nodulare, rivalutare la morfologia. In MCL è indice prognostico (>30%: NGS)."
+      trap: "Ki67 ≥30% in nodulare piccole cellule: inusuale per linfoma indolente (sotto il 30% i livelli non discriminano prognosticamente — Hoster, JCO 2016, PMID 26926679). Escludere HGBL/blastoide su pattern nodulare, trasformazione e fase accelerata; rivalutare la morfologia. In MCL il 30% è il cutoff prognostico validato (>30%: NGS)."
     },
 
     nod_cd5: {
@@ -1179,14 +1179,15 @@ const TREE = {
       type: "choice",
       question: "Ki67 — screening iniziale",
       marker: "Ki67",
-      note: "Primo orientamento biologico prima dell'IHC specifica. Ki67 ~100% orienta a Burkitt; elevato ma <100% suggerisce HGBL.",
+      note: "Primo orientamento biologico prima dell'IHC specifica. 95–100% orienta a Burkitt; elevato ma <95% verso DLBCL/HGBL; un valore basso in grandi cellule è un'anomalia da spiegare, non un 'negativo'.",
       options: [
-        { label: "+  (~100%, ≥95%)",  removes: [],           next: "dif_l_cd5_cycd1" },
-        { label: "−  (elevato <95%)", removes: [],           next: "dif_l_cd5_cycd1" },
-        { label: "?  Non eseguito",   removes: [],           next: "dif_l_cd5_cycd1" }
+        { label: "95–100% (range Burkitt)",                                       removes: [], next: "dif_l_cd5_cycd1" },
+        { label: "~50–95% (DLBCL / HGBL tipico)",                                  removes: [], next: "dif_l_cd5_cycd1" },
+        { label: "<50% (inusuale per grandi cellule — ricontrolla area e conta)",  removes: [], next: "dif_l_cd5_cycd1" },
+        { label: "? Non eseguito",                                                 removes: [], next: "dif_l_cd5_cycd1" }
       ],
       differential: null,
-      trap: "Ki67 ~100% è criterio diagnostico chiave per Burkitt (WHO-HAEM5: MYC ≥95% cellule, CD10+, BCL2−, FISH t(8;14)). Ki67 ≥80% ma <100%: HGBL-DH o HGBL-NOS. Ki67 molto alto + CycD1+: MCL blastoide."
+      trap: "95–100% è criterio diagnostico chiave per Burkitt (WHO-HAEM5: MYC ≥95% cellule, CD10+, BCL2−, FISH t(8;14)). ~80–95%: HGBL-DH o HGBL-NOS. Ki67 molto alto + CycD1+: MCL blastoide. ⚠ Ki67 basso (<50%) in grandi cellule diffuse: prima di accettarlo escludi (1) conta sul campo sbagliato — in THRLBCL/NLPBL leggi il Ki67 SULLE large cells neoplastiche, non sul background T/istiocitario; (2) lesione non linfoide (metastasi carcinoma/melanoma) — verifica CD20/CD45; (3) reagente fallito — controllo interno MIB-1 negativo = Ki67 invalido. DLBCL genuinamente a basso Ki67 è diagnosi di esclusione."
     },
 
     // Fix 1: type "choice" — chiede CD5 + CycD1 insieme
@@ -1393,9 +1394,9 @@ const TREE = {
       marker: "Ki67",
       note: "Primo orientamento biologico. Ki67 elevato in cellule piccole è inatteso per linfomi indolenti.",
       options: [
-        { label: "+  (>30%)",        removes: [], next: "dif_s_cd5" },
-        { label: "−  (≤30%)",        removes: [], next: "dif_s_cd5" },
-        { label: "?  Non eseguito",  removes: [], next: "dif_s_cd5" }
+        { label: "<30% (atteso indolente)",                                   removes: [], next: "dif_s_cd5" },
+        { label: "≥30% (red flag: MCL blastoide / Richter / fase espansiva)", removes: [], next: "dif_s_cd5" },
+        { label: "? Non eseguito",                                            removes: [], next: "dif_s_cd5" }
       ],
       differential: null,
       trap: "Ki67 >30% in cellule piccole: (1) MCL blastoide su pattern diffuso — CycD1 obbligatorio; (2) trasformazione Richter in CLL/SLL — storia clinica; (3) LPL/WM in fase espansiva. Ki67 <5%: tipico CLL indolente."
